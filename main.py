@@ -6,6 +6,7 @@ import psycopg2
 from config import config
 
 import pandas as pd
+import numpy as np
 
 def main() -> NoReturn:
     """
@@ -66,8 +67,11 @@ ORDER BY reltuples DESC
         for row in table_row:
             class_counts.append(row)
 
-        # TODO: df instead
-        print(class_counts)
+        # using df
+        cc = pd.DataFrame(data=class_counts)
+        cc.columns = ['table', 'count']
+
+        print(cc, "\n")
 
         columns_types = """
         SELECT column_name, data_type
