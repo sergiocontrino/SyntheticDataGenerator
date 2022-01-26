@@ -1,10 +1,17 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
+from typing import NoReturn
 
 import psycopg2
 from config import config
 
 import pandas as pd
+
+def main() -> NoReturn:
+    """
+
+    :return: none
+    """
 
 
 def connection():
@@ -13,6 +20,7 @@ def connection():
     con: connection = psycopg2.connect(**params)
     con.set_client_encoding('UTF8')
     return con
+
 
     """
     con: connection = psycopg2.connect(
@@ -30,18 +38,11 @@ def get_stats():
     conn = connection()
     try:
         # connect to the PostgreSQL server
-        print('Connecting to the PostgreSQL database...')
 
         # create a cursor
         cur = conn.cursor()
 
-        # execute a statement
-        print('PostgreSQL database version:')
-        cur.execute('SELECT version()')
-
-        # display the PostgreSQL database server version
-        db_version = cur.fetchone()
-        print(db_version)
+        get_dbname(cur)
 
         class_counts = []  # not necessary
         counts = []    # to hold the summaries (for all tables)
@@ -64,11 +65,9 @@ ORDER BY reltuples DESC
         table_row = cur.fetchall()
         for row in table_row:
             class_counts.append(row)
-            #print(row)
 
-        print("--" * 20)
+        # TODO: df instead
         print(class_counts)
-        print("--" * 20)
 
         columns_types = """
         SELECT column_name, data_type
@@ -87,21 +86,18 @@ order by 2 desc
         """
 
         for trow in table_row:
-            print("==" * 10, trow[0])
+            print(">>>", trow[0], "--" * 10)
             cur.execute(columns_types, (trow[0],))
             column_type = cur.fetchall()
             for crow in column_type:
-                print(crow)
                 # do int -> summary stat, date ->?
                 if not crow[0].endswith("date"):
                     cur.execute(columns_counts.format(crow[0], trow[0]))
                     column_count = cur.fetchall()
                     for ccrow in column_count:
-                        print(trow[0], crow[0], "\"" + str(ccrow[0]) + "\"", "{:.2f}".format(ccrow[1]/trow[1] * 100))
+                        print(trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"", "{:.2f}".format(ccrow[1]/trow[1] * 100))
                         #print (trow[0], crow[0], ccrow, ccrow[1]/trow[1] * 100)
-        print("-+" * 20)
-
-        print(counts)
+        print()
 
         # close the communication with the PostgreSQL
         cur.close()
@@ -112,6 +108,24 @@ order by 2 desc
             conn.close()
             print('Database connection closed.')
 
+
+def get_db_version(cur):
+    print('PostgreSQL database version:')
+    cur.execute('SELECT version()')
+    db_version = cur.fetchone()
+    print(db_version)
+
+
+def get_dbname(cur: connection()) -> NoReturn:
+    """
+    print header with database in use
+    :rtype: the current database
+    """
+    cur.execute('SELECT current_database()')
+    db_name = cur.fetchone()[0]
+    print("==" * 20)
+    print('Connecting to database:', db_name)
+    print("==" * 20)
 
 if __name__ == '__main__':
     get_stats()
