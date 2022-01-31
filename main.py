@@ -15,6 +15,12 @@ def main() -> NoReturn:
     """
 
 
+def get_excluded_tables() -> str:
+    """ the list of tables we don't want to consider """
+    exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog'"
+    return exclusion_list
+
+
 def connection():
     # read connection parameters
     params = config()
@@ -50,16 +56,16 @@ def get_stats():
         df = pd.DataFrame()
 
         tables_rows = """
-        SELECT relname,reltuples
-FROM pg_class C
-LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-WHERE 
-  nspname NOT IN ('pg_catalog', 'information_schema') 
-  AND relname NOT IN ('tracker', 'intermineobject', 'intermine_metadata') 
-  AND relkind='r' 
-  and reltuples > 0
-ORDER BY reltuples DESC
-        """
+                SELECT relname,reltuples
+        FROM pg_class C
+        LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+        WHERE 
+          nspname NOT IN ('pg_catalog', 'information_schema') 
+          AND relname NOT IN (""" + get_excluded_tables() + """) 
+          AND relkind='r' 
+          and reltuples > 0
+        ORDER BY reltuples DESC
+                """
 
         cur.execute(tables_rows)
 
