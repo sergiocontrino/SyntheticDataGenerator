@@ -74,10 +74,10 @@ def get_stats():
             class_counts.append(row)
 
         # using df
-        cc = pd.DataFrame(data=class_counts)
-        cc.columns = ['table', 'count']
+        classcount = pd.DataFrame(data=class_counts)
+        classcount.columns = ['table', 'count']
 
-        print(cc, "\n")
+        print(classcount, "\n")
 
         columns_types = """
         SELECT column_name, data_type
@@ -95,8 +95,11 @@ group by 1
 order by 2 desc
         """
 
+        cols = ['table', 'attribute', 'type', 'value', 'count']
+        rows = []
+
         for trow in table_row:
-            print(">>>", trow[0], "--" * 10)
+            print(">>>", trow[0])
             cur.execute(columns_types, (trow[0],))
             column_type = cur.fetchall()
             for crow in column_type:
@@ -105,9 +108,18 @@ order by 2 desc
                     cur.execute(columns_counts.format(crow[0], trow[0]))
                     column_count = cur.fetchall()
                     for ccrow in column_count:
-                        print(trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"", "{:.2f}".format(ccrow[1]/trow[1] * 100))
-                        #print (trow[0], crow[0], ccrow, ccrow[1]/trow[1] * 100)
+                        rows.append([trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                              "{:.2f}".format(ccrow[1]/trow[1] * 100)])
+                        #cc.loc(len(cc)) = [trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                        #      "{:.2f}".format(ccrow[1]/trow[1] * 100)]
+
+                        #print(trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                        #      "{:.2f}".format(ccrow[1]/trow[1] * 100))
+
         print()
+
+        cc = pd.DataFrame(rows, columns=cols)
+        print(cc)
 
         # close the communication with the PostgreSQL
         cur.close()
