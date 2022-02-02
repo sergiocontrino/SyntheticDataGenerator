@@ -5,8 +5,11 @@ from typing import NoReturn
 import psycopg2
 from config import config
 
+import argparse
+
 import pandas as pd
 import numpy as np
+
 
 def main() -> NoReturn:
     """
@@ -14,11 +17,33 @@ def main() -> NoReturn:
     :return: none
     """
 
+"""
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    #    parser.add_argument(
+    #        "input", nargs="?", default="-",
+    #        metavar="INPUT_FILE", type=argparse.FileType("r"),
+    #        help="path to the input file (read from stdin if omitted)")
+
+    parser.add_argument(
+        "output", nargs="?", default="-",
+        metavar="OUTPUT_FILE", type=argparse.FileType("w"),
+        help="path to the output file (write to stdout if omitted)")
+
+    args = parser.parse_args()
+"""
+
 
 def get_excluded_tables() -> str:
     """ the list of tables we don't want to consider """
     exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog'"
     return exclusion_list
+
+
+def get_precision() -> str:
+    """ the number of decimals we want to keep """
+    precision = """{:.2f}"""
+    return precision
 
 
 def connection():
@@ -29,16 +54,13 @@ def connection():
     return con
 
 
-    """
-    con: connection = psycopg2.connect(
-        dbname='ithrivemine',
-        user='modmine',
-        password='modmine',
-        host='localhost',
-        port=5432
-    )
-    """
-
+    #con: connection = psycopg2.connect(
+    #    dbname='ithrivemine',
+    #    user='modmine',
+    #    password='modmine',
+    #    host='localhost',
+    #    port=5432
+    #)
 
 def get_stats():
     """ Connect to the PostgreSQL database server """
@@ -52,7 +74,7 @@ def get_stats():
         get_dbname(cur)
 
         class_counts = []  # not necessary
-        counts = []    # to hold the summaries (for all tables)
+        counts = []  # to hold the summaries (for all tables)
         df = pd.DataFrame()
 
         tables_rows = """
@@ -71,13 +93,20 @@ def get_stats():
 
         table_row = cur.fetchall()
         for row in table_row:
+            if row[0] == 'patient':
+                den = row[1]
             class_counts.append(row)
 
-        # using df
-        classcount = pd.DataFrame(data=class_counts)
-        classcount.columns = ['table', 'count']
+        cols = ['rows', 'ratio']
+        rows = []
+        ind = []
+        for rec in class_counts:
+            rows.append([rec[1], get_precision().format(rec[1]/den)])
+            ind.append(rec[0])
+        aa = pd.DataFrame(rows, columns=cols, index=ind)
+        print(aa)
 
-        print(classcount, "\n")
+        print()
 
         columns_types = """
         SELECT column_name, data_type
@@ -109,17 +138,19 @@ order by 2 desc
                     column_count = cur.fetchall()
                     for ccrow in column_count:
                         rows.append([trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
-                              "{:.2f}".format(ccrow[1]/trow[1] * 100)])
-                        #cc.loc(len(cc)) = [trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                                     get_precision().format(ccrow[1] / trow[1] * 100)])
+                        # cc.loc(len(cc)) = [trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
                         #      "{:.2f}".format(ccrow[1]/trow[1] * 100)]
 
-                        #print(trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                        # print(trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
                         #      "{:.2f}".format(ccrow[1]/trow[1] * 100))
 
         print()
 
         cc = pd.DataFrame(rows, columns=cols)
         print(cc)
+        # print df to file
+        cc.to_csv("summary.csv")
 
         # close the communication with the PostgreSQL
         cur.close()
@@ -141,13 +172,13 @@ def get_db_version(cur):
 def get_dbname(cur: connection()) -> NoReturn:
     """
     print header with database in use
-    :rtype: the current database
     """
     cur.execute('SELECT current_database()')
     db_name = cur.fetchone()[0]
     print("==" * 20)
     print('Connecting to database:', db_name)
     print("==" * 20)
+
 
 if __name__ == '__main__':
     get_stats()
