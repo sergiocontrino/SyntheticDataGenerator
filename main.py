@@ -34,6 +34,18 @@ def main() -> NoReturn:
 """
 
 
+def get_scaling_class() -> str:
+    """ the class we use to scale the db """
+    scaling_class = "patient"
+    return scaling_class
+
+
+def get_scaling_size() -> int:
+    """ the class we use to scale the db """
+    scaling_size = 5000
+    return scaling_size
+
+
 def get_excluded_tables() -> str:
     """ the list of tables we don't want to consider """
     exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog'"
@@ -93,7 +105,7 @@ def get_stats():
 
         table_row = cur.fetchall()
         for row in table_row:
-            if row[0] == 'patient':
+            if row[0] == get_scaling_class():
                 den = row[1]
             class_counts.append(row)
 
@@ -127,13 +139,20 @@ order by 2 desc
         cols = ['table', 'attribute', 'type', 'value', 'count']
         rows = []
 
+        col_dict = {}    # TODO: get directly from df cc
+
+
         for trow in table_row:
-            print(">>>", trow[0])
+            #print(">>>", trow[0])
+
+            tcols = []
             cur.execute(columns_types, (trow[0],))
             column_type = cur.fetchall()
             for crow in column_type:
                 # do int -> summary stat, date ->?
                 if not crow[0].endswith("date"):
+#                    tcols.append([trow[0], crow[0]])
+                    tcols.append(crow[0])
                     cur.execute(columns_counts.format(crow[0], trow[0]))
                     column_count = cur.fetchall()
                     for ccrow in column_count:
@@ -144,13 +163,19 @@ order by 2 desc
 
                         # print(trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
                         #      "{:.2f}".format(ccrow[1]/trow[1] * 100))
-
-        print()
+            col_dict.update({trow[0]: tcols})
 
         cc = pd.DataFrame(rows, columns=cols)
         print(cc)
         # print df to file
         cc.to_csv("summary.csv")
+
+#        for trow in table_row:
+#            print("<><><>", trow[0])
+
+        print()
+        print(col_dict)
+        print()
 
         # close the communication with the PostgreSQL
         cur.close()
