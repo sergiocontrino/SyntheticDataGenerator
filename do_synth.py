@@ -87,10 +87,6 @@ def get_tables():
         # just show the db we are querying
         get_dbname(cur)
 
-        class_counts = []  # not necessary
-        counts = []  # to hold the summaries (for all tables)
-        df = pd.DataFrame()
-
         tables_rows = """
                 SELECT relname,reltuples
         FROM pg_class C
@@ -104,6 +100,8 @@ def get_tables():
                 """
 
         cur.execute(tables_rows)
+
+        class_counts = []  #
 
         table_row = cur.fetchall()
         for row in table_row:
@@ -120,13 +118,8 @@ def get_tables():
             rows.append([rec[1], get_precision().format(rec[1] / den)])
             ind.append(rec[0])
             tables_sizes.update({rec[0]: rec[1]})
-        aa = pd.DataFrame(rows, columns=cols, index=ind)
-        print(aa)
-
-        print(aa.loc['referral', 'ratio'])
-
-        print("--" * 20)
-        print(tables_sizes)
+        df_tsizes = pd.DataFrame(rows, columns=cols, index=ind)
+        print(df_tsizes)
 
         print()
 
@@ -172,28 +165,27 @@ order by 2 desc
                         rows.append([trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
                                      get_precision().format(ccrow[1] / trow[1] * 100)])
             collist = ", ".join(tcols)
-            print(">>>>>", collist)
 
             cur.execute(table_export.format(collist, trow[0]))
             tab_exp = cur.fetchall()
 
             qq = pd.DataFrame(tab_exp, columns=tcols)
+            # print(qq)
 
-            print(qq)
             # scale the different tables according to original size.
             # get scaling factor
-            scaling_factor = int(float(aa.loc[trow[0], 'ratio']) * get_scaling_size())
-            print(trow[0], scaling_factor)
+            scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * get_scaling_size())
+            print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
-            #qq.sample(n=get_scaling_size(), replace=True).to_csv('{0}.csv'.format(trow[0]))
             qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]))
 
             col_dict.update({trow[0]: tcols})
 
-        cc = pd.DataFrame(rows, columns=cols)
-        #print(cc)
+        summaries = pd.DataFrame(rows, columns=cols)
+
         # print df to file
-        #cc.to_csv("summary.csv")
+        summaries.to_csv("summaries.csv")
+        print()
 
         """ 1 df per table, do sample, 
         n is scaling size for the scaling class, the other number are derived by the table counts)
