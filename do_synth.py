@@ -123,6 +123,8 @@ def get_tables():
         aa = pd.DataFrame(rows, columns=cols, index=ind)
         print(aa)
 
+        print(aa.loc['referral', 'ratio'])
+
         print("--" * 20)
         print(tables_sizes)
 
@@ -178,8 +180,13 @@ order by 2 desc
             qq = pd.DataFrame(tab_exp, columns=tcols)
 
             print(qq)
-            # TODO: scale the different tables according to original size.
-            qq.sample(n=get_scaling_size(), replace=True).to_csv('{0}.csv'.format(trow[0]))
+            # scale the different tables according to original size.
+            # get scaling factor
+            scaling_factor = int(float(aa.loc[trow[0], 'ratio']) * get_scaling_size())
+            print(trow[0], scaling_factor)
+
+            #qq.sample(n=get_scaling_size(), replace=True).to_csv('{0}.csv'.format(trow[0]))
+            qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]))
 
             col_dict.update({trow[0]: tcols})
 
@@ -188,20 +195,10 @@ order by 2 desc
         # print df to file
         #cc.to_csv("summary.csv")
 
-        """ TODO: 1 df per table, do sample, 
+        """ 1 df per table, do sample, 
         n is scaling size for the scaling class, the other number are derived by the table counts)
         to cvs result        
         """
-        cc2 = cc.sample(n=get_scaling_size(), replace=True)
-        cc2.to_csv("aftersampling.csv")
-        #print(cc2)
-
-        #        for trow in table_row:
-        #            print("<><><>", trow[0])
-
-        print()
-        print(col_dict)
-        print()
 
         # close the communication with the PostgreSQL
         cur.close()
