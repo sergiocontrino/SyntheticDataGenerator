@@ -3,6 +3,7 @@
 from typing import NoReturn
 
 import psycopg2
+
 from config import config
 
 import argparse
@@ -17,44 +18,62 @@ def main() -> NoReturn:
     :return: none
     """
 
+#    get_args()
 
-"""
+
+def get_args():
     parser = argparse.ArgumentParser(description=__doc__)
-
-    #    parser.add_argument(
-    #        "input", nargs="?", default="-",
-    #        metavar="INPUT_FILE", type=argparse.FileType("r"),
-    #        help="path to the input file (read from stdin if omitted)")
-
+    parser.add_argument(
+        "scaling_class", nargs="?", default=get_scaling_class(),
+        help="The class used as dimension reference in the db",
+        type=str)
+    parser.add_argument(
+        "scaling_size", nargs="?", default=get_scaling_size(),
+        help="The desired number of records for the scaling class",
+        type=int)
+    parser.add_argument(
+        "input", nargs="?", default="-",
+        metavar="INPUT_FILE", type=argparse.FileType("r"),
+        help="path to the input file (read from stdin if omitted)")
     parser.add_argument(
         "output", nargs="?", default="-",
         metavar="OUTPUT_FILE", type=argparse.FileType("w"),
         help="path to the output file (write to stdout if omitted)")
-
     args = parser.parse_args()
-"""
+    return args
+    print("----" * 20)
+    print(args.scaling_class, args.scaling_size)
 
 
 def get_scaling_class() -> str:
-    """ the class we use to scale the db """
+    """
+    sets the default class we use to scale the db
+    """
     scaling_class = "patient"
     return scaling_class
 
 
 def get_scaling_size() -> int:
-    """ the target size of the scaling class """
+    """
+    sets the default target size of the scaling class
+    """
     scaling_size = 5000
     return scaling_size
 
 
 def get_excluded_tables() -> str:
-    """ the list of tables we don't want to consider """
+    """
+    the list of tables we don't want to consider
+    (for example in an intermine schema)
+    """
     exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog'"
     return exclusion_list
 
 
 def get_precision() -> str:
-    """ the number of decimals we want to keep """
+    """
+    the number of decimals we want to keep for our floats
+    """
     precision = """{:.2f}"""
     return precision
 
@@ -75,7 +94,7 @@ def connection():
     # )
 
 
-def get_tables():
+def get_tables(args):
     """ Connect to the PostgreSQL database server """
     conn = connection()
     try:
@@ -105,7 +124,8 @@ def get_tables():
 
         table_row = cur.fetchall()
         for row in table_row:
-            if row[0] == get_scaling_class():
+            #if row[0] == get_scaling_class():
+            if row[0] == args.scaling_class:
                 den = row[1]
             class_counts.append(row)
 
@@ -174,7 +194,8 @@ order by 2 desc
 
             # scale the different tables according to original size.
             # get scaling factor
-            scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * get_scaling_size())
+            #scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * get_scaling_size())
+            scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.scaling_size)
             print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
             qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]))
@@ -221,4 +242,5 @@ def get_dbname(cur: connection()) -> NoReturn:
 
 
 if __name__ == '__main__':
-    get_tables()
+    #get_args()
+    get_tables(get_args())
