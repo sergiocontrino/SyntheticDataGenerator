@@ -1,5 +1,6 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
+import random
 from typing import NoReturn
 
 import psycopg2
@@ -30,6 +31,10 @@ def main() -> NoReturn:
 def get_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "target_size", nargs="?", default=20,
+        help="The desired number of records for the scaling class",
+        type=int)
+    parser.add_argument(
         "input", nargs="?", default="./proto.csv",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
         help="path to the input file (read from stdin if omitted)")
@@ -53,48 +58,78 @@ def read_risks(args):
     risk = []
     value = []
     count = []
-    currisk: str = ''
+    risk_output = []
+    ratio = 1
     i = 0
     for line in args.input:
         #print("==", i)
+        this_risk = line.split(',')[0]
         if i == 0:
-            risk.append(line.split(',')[0])
-            value.append(line.split(',')[2])
-            count.append(int(line.split(',')[3]))
+            build_output(line, risk, risk_output, value, count, args)
             i = i+1
         else:
             if line.split(',')[0] != risk[len(risk)-1]:
                 print("se cambia")
                 # -> risk df
+                print(risk_output)
+                print(len(risk_output))
+                print(risk_output.count("Null"))
+                random.shuffle(risk_output)
                 print(line.split(',')[0])
-                d = {"value": value, "count": count}
+                #d = {"value": value, "count": count}
+                d = {"value": risk_output}
                 qq = pd.DataFrame(d)
                 print(qq)
+                qq.to_csv('{0}.csv'.format(risk[len(risk)-1]))
+                #qq.sample(n=20, replace=True).to_csv('{0}.csv'.format(risk[len(risk)-1].join("sampled")))
                 # empty lists
                 risk = []
                 value = []
                 count = []
+                risk_output = []
                 # start anew
-                risk.append(line.split(',')[0])
-                value.append(line.split(',')[2])
-                count.append(int(line.split(',')[3]))
+                build_output(line, risk, risk_output, value, count, args)
+                #add_record(count, line, risk, value)
             else:
                 # just append
-                risk.append(line.split(',')[0])
-                value.append(line.split(',')[2])
-                count.append(int(line.split(',')[3]))
+                build_output(line, risk, risk_output, value, count, args)
+                #add_record(count, line, risk, value)
     # the last rf
-    d = {"value": value, "count": count}
+#    d = {"value": value, "count": count}
+    d = {"value": risk_output}
     qq = pd.DataFrame(d)
     print(qq)
+    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]))
 
-    print("-" * 20)
-    print(risk)
-    print(value)
-    print(count)
+    print("*" * 20)
+    print(risk_output)
+    print(len(risk_output))
 
-    print(risk.count('sex'))
+#    print("-" * 20)
+#    print(risk)
+#    print(value)
+#    print(count)
+
+#    print(risk.count('sex'))
     return risk, value, count
+
+
+def build_output(line, risk, risk_output, value, count, args):
+    ratio = int((line.split(',')[3])) / int((line.split(',')[1]))
+ #   print(ratio, line.split(',')[3])
+    rr = int(ratio * args.target_size)
+    for t in range(rr):
+        risk_output.append(line.split(',')[2])
+    #print("->", risk_output)
+    risk.append(line.split(',')[0])
+    value.append(line.split(',')[2])
+    count.append(int(line.split(',')[3]))
+
+
+def add_record(count, line, risk, value):
+    risk.append(line.split(',')[0])
+    value.append(line.split(',')[2])
+    count.append(int(line.split(',')[3]))
 
 
 """
