@@ -37,8 +37,12 @@ def get_args():
     return args
 
 
-def read_risks(args):
+def read_categorical_risks(args):
     """
+    using csv file with
+    risk_factor, total, value, count
+    e.g.
+    sex,945287,F,480231
 
     """
     # target_size = args.target_size
@@ -90,6 +94,15 @@ def read_risks(args):
     return risk, value, count
 
 
+def read_continuous_risks(args):
+    """
+    TODO
+    reading csv file format
+    risk_factor, min, max, mean, sd, tot_nr_of_records, null?
+    """
+    print("not implemented yet")
+
+
 def verbose_output(risk, synthetic_risk):
     # TODO: case insensitive null
     print("-" * 20)
@@ -123,4 +136,4 @@ def add_record(count, line, risk, value):
 
 
 if __name__ == '__main__':
-    read_risks(get_args())
+    read_categorical_risks(get_args())
