@@ -3,6 +3,7 @@
 import random
 from typing import NoReturn
 
+import numpy as np
 import psycopg2
 
 from config import config
@@ -24,7 +25,7 @@ def get_args():
         help="The desired number of records for the scaling class",
         type=int)
     parser.add_argument(
-        "input", nargs="?", default="./proto.csv",
+        "input", nargs="?", default="./protonum.csv",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
         help="path to the input file (read from stdin if omitted)")
     parser.add_argument(
@@ -44,6 +45,7 @@ def read_categorical_risks(args):
     e.g.
     sex,945287,F,480231
 
+    TODO: rm risk[], value[], count[] (not needed), unless other uses
     """
     # target_size = args.target_size
     risk, value, count, synthetic_risk = [], [], [], []
@@ -94,13 +96,50 @@ def read_categorical_risks(args):
     return risk, value, count
 
 
+def dump_csv(risk, data):
+    d = {"value": data}
+    qq = pd.DataFrame(d)
+    print(qq)
+    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]))
+
+
 def read_continuous_risks(args):
     """
     TODO
     reading csv file format
-    risk_factor, min, max, mean, sd, tot_nr_of_records, null?
+    ind, risk_factor, var_name, dataset, min, max, mean, sd, tot_nr_of_records, nr of missing values
+
+    e.g.:
+    1,Birth weight,BIRTH_WEIGHT,SAIL1336B.ADBE_BIRTHS_20210107,0,9999,3325.37,578.92,950215,3.41E-05
+    2,Global development delay,AGE_SOLID_FOOD_WKS,SAIL1336V.NCCH_CHILD_TRUST_2021101,0,340,25.23,5.21,1375321,0.927
+
+    numpy.random.normal(loc=0.0, scale=1.0, size=None)
+    Loc = mean
+    Scale = sd
+    Size = sample size
     """
     print("not implemented yet")
+
+    # we need name, mean, sd, final size
+    # we assume normal distribution
+    for line in args.input:
+        risk = line.split(',')[2]
+        mean = float(line.split(',')[6])
+        sd = float(line.split(',')[7])
+
+        print(risk)
+        np.random.seed(1)
+        synth_data = np.random.normal(loc=mean, scale=sd, size=50)
+        dump_csv(risk, synth_data)
+        #verbose_output(risk, synth_data)
+
+
+def dump_csv(risk, data):
+    d = {"value": data}
+    qq = pd.DataFrame(d)
+    print(qq)
+#    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]))
+    qq.to_csv('{0}.csv'.format(risk))
 
 
 def verbose_output(risk, synthetic_risk):
@@ -130,10 +169,19 @@ def build_output(line, risk_output, args):
 
 
 def add_record(count, line, risk, value):
+    """
+    not needed!
+    :param count:
+    :param line:
+    :param risk:
+    :param value:
+    :return:
+    """
     risk.append(line.split(',')[0])
     value.append(line.split(',')[2])
     count.append(int(line.split(',')[3]))
 
 
 if __name__ == '__main__':
-    read_categorical_risks(get_args())
+    #read_categorical_risks(get_args())
+    read_continuous_risks(get_args())
