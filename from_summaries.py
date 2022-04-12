@@ -25,7 +25,7 @@ def get_args():
         help="The desired number of records for the scaling class",
         type=int)
     parser.add_argument(
-        "input", nargs="?", default="./protonum.csv",
+        "input", nargs="?", default="./numproto.csv",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
         help="path to the input file (read from stdin if omitted)")
     parser.add_argument(
@@ -35,6 +35,8 @@ def get_args():
     args = parser.parse_args()
     print("==" * 20)
     print("Running with\ninput =", args.input.name, "\noutput  =", args.output.name)
+    print("Target size for synthetic datasets:", str(args.target_size))
+    print("--" * 20)
     return args
 
 
@@ -96,13 +98,6 @@ def read_categorical_risks(args):
     return risk, value, count
 
 
-def dump_csv(risk, data):
-    d = {"value": data}
-    qq = pd.DataFrame(d)
-    print(qq)
-    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]))
-
-
 def read_continuous_risks(args):
     """
     TODO
@@ -118,18 +113,17 @@ def read_continuous_risks(args):
     Scale = sd
     Size = sample size
     """
-    print("not implemented yet")
 
     # we need name, mean, sd, final size
     # we assume normal distribution
     for line in args.input:
-        risk = line.split(',')[2]
+        risk = line.split(',')[1] # with [2] you get the BIRTH_WEIGHT, maybe better?
         mean = float(line.split(',')[6])
         sd = float(line.split(',')[7])
 
-        print(risk)
+        print("\n" + risk)
         np.random.seed(1)
-        synth_data = np.random.normal(loc=mean, scale=sd, size=50)
+        synth_data = np.random.normal(loc=mean, scale=sd, size=args.target_size)
         dump_csv(risk, synth_data)
         #verbose_output(risk, synth_data)
 
@@ -138,7 +132,6 @@ def dump_csv(risk, data):
     d = {"value": data}
     qq = pd.DataFrame(d)
     print(qq)
-#    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]))
     qq.to_csv('{0}.csv'.format(risk))
 
 
@@ -183,5 +176,9 @@ def add_record(count, line, risk, value):
 
 
 if __name__ == '__main__':
-    #read_categorical_risks(get_args())
-    read_continuous_risks(get_args())
+    args = get_args()
+
+    if args.input.name.startswith('./num'):
+        read_continuous_risks(args)
+    else:
+        read_categorical_risks(args)
