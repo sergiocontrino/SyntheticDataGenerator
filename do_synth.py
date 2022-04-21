@@ -1,15 +1,10 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
-from typing import NoReturn
-
-import psycopg2
-
 from config import config
-
+from typing import NoReturn
+import psycopg2
 import argparse
-
 import pandas as pd
-import numpy as np
 
 
 def main() -> NoReturn:
@@ -17,8 +12,6 @@ def main() -> NoReturn:
 
     :return: none
     """
-
-#    get_args()
 
 
 def get_args():
@@ -40,9 +33,9 @@ def get_args():
         metavar="OUTPUT_FILE", type=argparse.FileType("w"),
         help="path to the output file (write to stdout if omitted)")
     args = parser.parse_args()
+    print("==" * 20)
+    print("Running with\nscaling class =", args.scaling_class, "\nscaling size  =", args.scaling_size)
     return args
-    print("----" * 20)
-    print(args.scaling_class, args.scaling_size)
 
 
 def get_scaling_class() -> str:
@@ -66,7 +59,7 @@ def get_excluded_tables() -> str:
     the list of tables we don't want to consider
     (for example in an intermine schema)
     """
-    exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog'"
+    exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog', 'osbag_int'"
     return exclusion_list
 
 
@@ -99,12 +92,11 @@ def get_tables(args):
     conn = connection()
     try:
         # connect to the PostgreSQL server
-
         # create a cursor
         cur = conn.cursor()
 
         # just show the db we are querying
-        get_dbname(cur)
+        show_dbname(cur)
 
         tables_rows = """
                 SELECT relname,reltuples
@@ -170,8 +162,6 @@ order by 2 desc
         col_dict = {}  # TODO: get directly from df cc
 
         for trow in table_row:
-            # print(">>>", trow[0])
-
             tcols = []
             cur.execute(columns_types, (trow[0],))
             column_type = cur.fetchall()
@@ -190,15 +180,15 @@ order by 2 desc
             tab_exp = cur.fetchall()
 
             qq = pd.DataFrame(tab_exp, columns=tcols)
-            # print(qq)
+            #print(qq)
 
             # scale the different tables according to original size.
             # get scaling factor
-            #scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * get_scaling_size())
             scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.scaling_size)
             print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
-            qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]))
+            # dump csv file of sampled data
+            qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
 
             col_dict.update({trow[0]: tcols})
 
@@ -230,17 +220,16 @@ def get_db_version(cur):
     print(db_version)
 
 
-def get_dbname(cur: connection()) -> NoReturn:
+def show_dbname(cur: connection()) -> NoReturn:
     """
     print header with database in use
     """
     cur.execute('SELECT current_database()')
     db_name = cur.fetchone()[0]
-    print("==" * 20)
+    print()
     print('Connecting to database:', db_name)
     print("==" * 20)
 
 
 if __name__ == '__main__':
-    #get_args()
     get_tables(get_args())
