@@ -167,7 +167,9 @@ order by 2 desc
             column_type = cur.fetchall()
             for crow in column_type:
                 # do int -> summary stat, date ->?
-                if not crow[0].endswith("date"):
+                # quick temp fix to check date columns
+                # TODO: remove condition!
+                if not crow[0].endswith("dates"):
                     tcols.append(crow[0])
                     cur.execute(columns_counts.format(crow[0], trow[0]))
                     column_count = cur.fetchall()
