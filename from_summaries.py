@@ -25,7 +25,7 @@ def get_args():
         help="The desired number of records for the scaling class",
         type=int)
     parser.add_argument(
-        "input", nargs="?", default="./numproto.csv",
+        "input", nargs="?", default="./proto.csv",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
         help="path to the input file (read from stdin if omitted)")
     parser.add_argument(
@@ -72,7 +72,7 @@ def read_categorical_risks(args):
                 # - make a df for export a csv list
                 # TODO: there must be a better way...
                 d = {"value": synthetic_risk}
-                pd.DataFrame(d).to_csv('{0}.csv'.format(risk[len(risk) - 1]))
+                pd.DataFrame(d).to_csv('{0}.csv'.format(risk[len(risk) - 1]), index=False)
 
                 # empty lists
                 count, risk, synthetic_risk, value = [], [], [], []
@@ -90,7 +90,7 @@ def read_categorical_risks(args):
     d = {"value": synthetic_risk}
     qq = pd.DataFrame(d)
     print(qq)
-    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]))
+    qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]), index=False)
 
     print("*" * 20)
     verbose_output(risk[len(risk) - 1], synthetic_risk)
@@ -132,7 +132,7 @@ def dump_csv(risk, data):
     d = {"value": data}
     qq = pd.DataFrame(d)
     print(qq)
-    qq.to_csv('{0}.csv'.format(risk))
+    qq.to_csv('{0}.csv'.format(risk), index=False)
 
 
 def verbose_output(risk, synthetic_risk):
