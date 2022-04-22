@@ -4,11 +4,8 @@ import random
 from typing import NoReturn
 
 import numpy as np
-import psycopg2
-
-from config import config
-import argparse
 import pandas as pd
+from get_args import get_args
 
 
 def main() -> NoReturn:
@@ -16,28 +13,6 @@ def main() -> NoReturn:
 
     :return: none
     """
-
-
-def get_args():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "target_size", nargs="?", default=20,
-        help="The desired number of records for the scaling class",
-        type=int)
-    parser.add_argument(
-        "input", nargs="?", default="./proto.csv",
-        metavar="INPUT_FILE", type=argparse.FileType("r"),
-        help="path to the input file (read from stdin if omitted)")
-    parser.add_argument(
-        "output", nargs="?", default="-",
-        metavar="OUTPUT_FILE", type=argparse.FileType("w"),
-        help="path to the output file (write to stdout if omitted)")
-    args = parser.parse_args()
-    print("==" * 20)
-    print("Running with\ninput =", args.input.name, "\noutput  =", args.output.name)
-    print("Target size for synthetic datasets:", str(args.target_size))
-    print("--" * 20)
-    return args
 
 
 def read_categorical_risks(args):

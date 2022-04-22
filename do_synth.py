@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 from config import config
 from typing import NoReturn
+from get_args import get_args
 import psycopg2
-import argparse
 import pandas as pd
 
 
@@ -12,46 +12,6 @@ def main() -> NoReturn:
 
     :return: none
     """
-
-
-def get_args():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "scaling_class", nargs="?", default=get_scaling_class(),
-        help="The class used as dimension reference in the db",
-        type=str)
-    parser.add_argument(
-        "scaling_size", nargs="?", default=get_scaling_size(),
-        help="The desired number of records for the scaling class",
-        type=int)
-    parser.add_argument(
-        "input", nargs="?", default="-",
-        metavar="INPUT_FILE", type=argparse.FileType("r"),
-        help="path to the input file (read from stdin if omitted)")
-    parser.add_argument(
-        "output", nargs="?", default="-",
-        metavar="OUTPUT_FILE", type=argparse.FileType("w"),
-        help="path to the output file (write to stdout if omitted)")
-    args = parser.parse_args()
-    print("==" * 20)
-    print("Running with\nscaling class =", args.scaling_class, "\nscaling size  =", args.scaling_size)
-    return args
-
-
-def get_scaling_class() -> str:
-    """
-    sets the default class we use to scale the db
-    """
-    scaling_class = "patient"
-    return scaling_class
-
-
-def get_scaling_size() -> int:
-    """
-    sets the default target size of the scaling class
-    """
-    scaling_size = 5000
-    return scaling_size
 
 
 def get_excluded_tables() -> str:
@@ -186,7 +146,7 @@ order by 2 desc
 
             # scale the different tables according to original size.
             # get scaling factor
-            scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.scaling_size)
+            scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.target_size)
             print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
             # dump csv file of sampled data
