@@ -150,7 +150,7 @@ order by 2 desc
             print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
             # dump csv file of sampled data
-            qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
+            qq.sample(n=scaling_factor, random_state=1, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
 
             col_dict.update({trow[0]: tcols})
 
