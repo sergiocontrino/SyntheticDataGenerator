@@ -17,7 +17,14 @@ def get_args():
         help="The desired number of records for the scaling class",
         type=int)
     parser.add_argument(
-        "input", nargs="?", default="./proto.csv",
+        "-s", "--seed", type=int, default=1,
+        help="Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. "
+        "Default is 1")
+    parser.add_argument(
+        "-ns", "--no_seed", action="store_true",
+        help="Don't use a seed for the sampling.")
+    parser.add_argument(
+        "input", nargs="?", default="./numproto.csv",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
         help="path to the input file (read from stdin if omitted)")
     parser.add_argument(
@@ -28,7 +35,7 @@ def get_args():
     print("==" * 20)
     print("Running with\ninput =", args.input.name, "\noutput  =", args.output.name)
     print("Target size for synthetic datasets:", str(args.target_size))
-    #print("Running with\nscaling class =", args.scaling_class, "\nscaling size  =", args.target_size)
+    print("Seed used in the categorical sampling:", str(args.seed))
     return args
 
 

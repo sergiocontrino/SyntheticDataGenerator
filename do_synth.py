@@ -149,8 +149,13 @@ order by 2 desc
             scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.target_size)
             print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
+            print("++== ", args.no_seed, "--", args.seed, "\\" *10)
             # dump csv file of sampled data
-            qq.sample(n=scaling_factor, random_state=1, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
+            if args.no_seed == "True":
+                qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
+            else:
+                qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(trow[0]),
+                                                                                         index=False)
 
             col_dict.update({trow[0]: tcols})
 

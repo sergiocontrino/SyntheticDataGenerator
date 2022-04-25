@@ -75,7 +75,6 @@ def read_categorical_risks(args):
 
 def read_continuous_risks(args):
     """
-    TODO
     reading csv file format
     ind, risk_factor, var_name, dataset, min, max, mean, sd, tot_nr_of_records, nr of missing values
 
@@ -87,6 +86,8 @@ def read_continuous_risks(args):
     Loc = mean
     Scale = sd
     Size = sample size
+
+    NB: there is no seeding in this case (results are reproducible, depending on sample size)
     """
 
     # we need name, mean, sd, final size
@@ -97,7 +98,7 @@ def read_continuous_risks(args):
         sd = float(line.split(',')[7])
 
         print("\n" + risk)
-        np.random.seed(1)
+        np.random.seed(args.seed)
         synth_data = np.random.normal(loc=mean, scale=sd, size=args.target_size)
         dump_csv(risk, synth_data)
         #verbose_output(risk, synth_data)
