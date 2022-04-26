@@ -9,20 +9,9 @@ import argparse
 def get_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "scaling_class", nargs="?", default=get_scaling_class(),
-        help="The class used as dimension reference in the db",
-        type=str)
-    parser.add_argument(
-        "target_size", nargs="?", default=get_target_size(),
-        help="The desired number of records for the scaling class",
-        type=int)
-    parser.add_argument(
-        "-s", "--seed", type=int, default=1,
-        help="Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. "
-        "Default is 1")
-    parser.add_argument(
-        "-ns", "--no_seed", action="store_true",
-        help="Don't use a seed for the sampling.")
+        "data_source", nargs="?", type=str, default="summaries",
+        help="Data source (database or file of summaries stats) to be used to generate a new synthetic data set."
+        "[db, summaries] -- default is summaries.")
     parser.add_argument(
         "input", nargs="?", default="./numproto.csv",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
@@ -31,6 +20,22 @@ def get_args():
         "output", nargs="?", default="-",
         metavar="OUTPUT_FILE", type=argparse.FileType("w"),
         help="path to the output file (write to stdout if omitted)")
+    parser.add_argument(
+        "-c", "--scaling_class", type=str, default="patient",
+        help="Entity (table) in the database used as reference dimension for scaling. "
+        "Default is patient")
+    parser.add_argument(
+        "-t", "--target_size", type=int, default=5000,
+        help="The desired number of synthetic records for the scaling class/the variables in the summaries."
+        "Default is 5000.")
+    parser.add_argument(
+        "-s", "--seed", type=int, default=1,
+        help="Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. "
+        "Default is 1.")
+    parser.add_argument(
+        "-u", "--no_seed", action="store_true",
+        help="Unseeded: don't use a seed for the sampling.")
+
     args = parser.parse_args()
     print("==" * 20)
     print("Running with\ninput =", args.input.name, "\noutput  =", args.output.name)
