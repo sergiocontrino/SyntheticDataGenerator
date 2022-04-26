@@ -38,11 +38,11 @@ def read_categorical_risks(args):
             prev_risk = risk[len(risk) - 1]
             if this_risk != prev_risk:
                 # the RF changed, let's output the previous one
-                # - first just some screen messages
-                verbose_output(prev_risk, synthetic_risk)
 
                 # - shuffle the synth list
                 random.shuffle(synthetic_risk)
+                # - just some screen messages
+                verbose_output(prev_risk, synthetic_risk)
 
                 # - make a df for export a csv list
                 # TODO: there must be a better way...
@@ -64,7 +64,6 @@ def read_categorical_risks(args):
     random.shuffle(synthetic_risk)
     d = {"value": synthetic_risk}
     qq = pd.DataFrame(d)
-    print(qq)
     qq.to_csv('{0}.csv'.format(risk[len(risk) - 1]), index=False)
 
     print("*" * 20)
@@ -107,7 +106,7 @@ def read_continuous_risks(args):
 def dump_csv(risk, data):
     d = {"value": data}
     qq = pd.DataFrame(d)
-    print(qq)
+#    print(qq)
     qq.to_csv('{0}.csv'.format(risk), index=False)
 
 
