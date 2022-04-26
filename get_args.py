@@ -11,15 +11,18 @@ def get_args():
     parser.add_argument(
         "data_source", nargs="?", type=str, default="summaries",
         help="Data source (database or file of summaries stats) to be used to generate a new synthetic data set."
-        "[db, summaries] -- default is summaries.")
+        "[db, summaries] default is summaries.")
     parser.add_argument(
-        "input", nargs="?", default="./numproto.csv",
+        "input", nargs="?", default="-",
         metavar="INPUT_FILE", type=argparse.FileType("r"),
         help="path to the input file (read from stdin if omitted)")
     parser.add_argument(
         "output", nargs="?", default="-",
         metavar="OUTPUT_FILE", type=argparse.FileType("w"),
         help="path to the output file (write to stdout if omitted)")
+    parser.add_argument(
+        "-n", "--numerical", action="store_true",
+        help="Flag the summaries in the input file as numerical (continuous).")
     parser.add_argument(
         "-c", "--scaling_class", type=str, default="patient",
         help="Entity (table) in the database used as reference dimension for scaling. "
