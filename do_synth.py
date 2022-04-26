@@ -76,7 +76,6 @@ def get_tables(args):
 
         table_row = cur.fetchall()
         for row in table_row:
-            #if row[0] == get_scaling_class():
             if row[0] == args.scaling_class:
                 den = row[1]
             class_counts.append(row)
@@ -149,14 +148,12 @@ order by 2 desc
             scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.target_size)
             print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
 
-            print("++== ", args.no_seed, "--", args.seed, "\\" *10)
             # dump csv file of sampled data
-            if args.no_seed == "True":
+            if args.no_seed:
                 qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
             else:
                 qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(trow[0]),
                                                                                          index=False)
-
             col_dict.update({trow[0]: tcols})
 
         summaries = pd.DataFrame(rows, columns=cols)
