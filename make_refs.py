@@ -3,7 +3,7 @@
 import random
 
 from config import config
-from typing import NoReturn, Dict, Any
+from typing import NoReturn, Dict, Any, List
 from get_args import get_args
 import psycopg2
 import pandas as pd
@@ -60,7 +60,7 @@ def get_tables(args):
         # just show the db we are querying
         show_dbname(cur)
 
-        table_row, table_names, tables_sizes = get_tables_size(args, cur)
+        table_names, tables_sizes = get_tables_size(args, cur)
 
         identifiers = """
         SELECT id
@@ -89,22 +89,15 @@ WHERE  column_name like '{}id'
         set {}id = {}
         where id = {}
         """
-
-        all_identifiers: dict[Any, Any]
-
-        for trow in table_row:
-            print(trow[0])
-            ref_ids = get_all_table_ids(cur, identifiers, trow[0])
-
-            #            all_identifiers[trow[0]] = this_id_set
-
-            cur.execute(ref_tables.format(trow[0]))
+        for tn in table_names:
+            print(tn + ": ")
+            ref_ids = get_all_table_ids(cur, identifiers, tn)
+            cur.execute(ref_tables.format(tn))
             this_ref_set = cur.fetchall()
             ref_set = [item[0] for item in this_ref_set]
-            print(ref_set, len(ref_set))
-            # print(this_ref_set, len(this_ref_set))
             if len(this_ref_set) == 0:
                 continue
+
             """
             get the referred tables
             for each
@@ -113,31 +106,30 @@ WHERE  column_name like '{}id'
                 for each id update with a sample element (scan both)
             """
             for table_name in ref_set:
+                print(table_name + "... ", end='')
                 table_size = tables_sizes.get(table_name)
                 if table_name == 'riskfactor':
                     continue
-                print(table_name, table_size)
+            #    print(table_name, table_size)
                 sampled_ref_id = random.choices(ref_ids, k=int(table_size))
                 ids = get_all_table_ids(cur, identifiers, table_name)
-                print(sampled_ref_id[0:5], "-- ids size:", len(sampled_ref_id), " from", len(ref_ids), ref_ids[0:5], " for",
-                      table_size)
-                # cur.executemany(fill_refs, (r, sampled_ids, ids))
+             #   print(sampled_ref_id[0:5], "-- ids size:", len(sampled_ref_id), " from", len(ref_ids), ref_ids[0:5])
+                """ this is not working
+                cur.executemany(fill_refss.format(table_name, trow[0], sampled_ref_id, ids))
+                count = cur.rowcount
+                print(count, "Recordss Updated successfully ")
+                """
                 counter = 0
                 for i in ids:
-                    print(fill_refss.format(table_name, trow[0], sampled_ref_id[counter], i))
-                    print(table_name, trow[0], i, "-", sampled_ref_id[counter])
-                    cur.execute(fill_refss.format(table_name, trow[0], sampled_ref_id[counter], i))
+                   # print(fill_refss.format(table_name, trow[0], sampled_ref_id[counter], i))
+                   # print(table_name, trow[0], i, "-", sampled_ref_id[counter])
+                    cur.execute(fill_refss.format(table_name, tn, sampled_ref_id[counter], i))
                     counter = counter + 1
-                    count = cur.rowcount
-                    print(count, "Recordss Updated successfully ")
+                  #  count = cur.rowcount
+                  #  print(count, "Recordss Updated successfully ")
                 conn.commit()
-                # cur.executemany(fill_refss.format(r, sampled_ids, ids))
-
+            print("\n")
         print("**" * 20)
-        # for k, v in all_identifiers.items():
-        #    print(k)
-
-        # close the communication with the PostgreSQL
         cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
@@ -175,7 +167,7 @@ def get_tables_size(args, cur):
         class_counts.append(row)
     cols = ['rows', 'ratio']
     rows = []
-    table_names = []
+    table_names: list[str] = []
     tables_sizes = {}  # k=table name, v=table size
     for rec in class_counts:
         rows.append([rec[1], get_precision().format(rec[1] / den)])
@@ -184,8 +176,8 @@ def get_tables_size(args, cur):
     df_tsizes = pd.DataFrame(rows, columns=cols, index=table_names)
     print(df_tsizes)
     print()
-    print(tables_sizes)
-    return table_row, table_names, tables_sizes
+    #print(tables_sizes)
+    return table_names, tables_sizes
 
 
 def dump_csv(args, qq, scaling_factor, trow):
