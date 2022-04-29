@@ -34,99 +34,70 @@ def get_precision() -> str:
 
 
 def connection():
-    # read connection parameters
+    """
+    reads connection parameters from default database.ini file
+    """
     params = config()
     con: connection = psycopg2.connect(**params)
     con.set_client_encoding('UTF8')
     return con
 
-    # con: connection = psycopg2.connect(
-    #    dbname='ithrivemine',
-    #    user='modmine',
-    #    password='modmine',
-    #    host='localhost',
-    #    port=5432
-    # )
 
+def fill_references(args):
+    """
+    Fills references in an InterMine-like schema:
 
-def get_tables(args):
-    """ Connect to the PostgreSQL database server """
+    each table has an 'id' column of unique identifiers (PK)
+    and can have reference to other tables in columns named '{referencedtablename}id'
+
+    e.g. 'diagnosis' table has a column 'id', and a 'patientid' where it stores the id of the referenced patient
+    (patient.id = diagnosis.patientid)
+
+    queries a db schema
+    """
+    # connect to the PostgreSQL server
     conn = connection()
     try:
-        # connect to the PostgreSQL server
         # create a cursor
         cur = conn.cursor()
-
         # just show the db we are querying
         show_dbname(cur)
+        # get tables and their sizes
 
-        table_names, tables_sizes = get_tables_size(args, cur)
+        tables_sizes = get_tables_size(args, cur)
 
-        identifiers = """
-        SELECT id
-        FROM  {}
-        """
-
-        ref_tables = """
-        SELECT table_name
-FROM   information_schema.columns
-WHERE  column_name like '{}id'
-        """
-        fill_pat = """
-        update {}
-        set siteid = {}
-        where id = {}
-        """
-
-        fill_refs = """
-        update %s
-        set siteid = %s
-        where id = %s
-        """
-
-        fill_refss = """
+        update_with_ref = """
         update {}
         set {}id = {}
         where id = {}
         """
-        for tn in table_names:
-            print(tn + ": ")
-            ref_ids = get_all_table_ids(cur, identifiers, tn)
-            cur.execute(ref_tables.format(tn))
-            this_ref_set = cur.fetchall()
-            ref_set = [item[0] for item in this_ref_set]
-            if len(this_ref_set) == 0:
+        for tn in tables_sizes.keys():
+            print(tn.upper() + ": ")
+            ref_ids = get_all_table_ids(cur, tn)
+            ref_set = get_referenced_tables(cur, tn)
+            if len(ref_set) == 0:
                 continue
 
-            """
-            get the referred tables
-            for each
-                get size (table_size.value)
-                build sample
-                for each id update with a sample element (scan both)
-            """
             for table_name in ref_set:
                 print(table_name + "... ", end='')
                 table_size = tables_sizes.get(table_name)
-                if table_name == 'riskfactor':
+                # subs with size check
+                if table_name not in tables_sizes:
+                    print(table_name, "is empty, no reference can be added for it")
                     continue
-            #    print(table_name, table_size)
+
                 sampled_ref_id = random.choices(ref_ids, k=int(table_size))
-                ids = get_all_table_ids(cur, identifiers, table_name)
-             #   print(sampled_ref_id[0:5], "-- ids size:", len(sampled_ref_id), " from", len(ref_ids), ref_ids[0:5])
+                ids = get_all_table_ids(cur, table_name)
+
                 """ this is not working
-                cur.executemany(fill_refss.format(table_name, trow[0], sampled_ref_id, ids))
+                cur.executemany(update_with_ref.format(table_name, trow[0], sampled_ref_id, ids))
                 count = cur.rowcount
-                print(count, "Recordss Updated successfully ")
+                print(count, "Records Updated successfully ")
                 """
                 counter = 0
                 for i in ids:
-                   # print(fill_refss.format(table_name, trow[0], sampled_ref_id[counter], i))
-                   # print(table_name, trow[0], i, "-", sampled_ref_id[counter])
-                    cur.execute(fill_refss.format(table_name, tn, sampled_ref_id[counter], i))
+                    cur.execute(update_with_ref.format(table_name, tn, sampled_ref_id[counter], i))
                     counter = counter + 1
-                  #  count = cur.rowcount
-                  #  print(count, "Recordss Updated successfully ")
                 conn.commit()
             print("\n")
         print("**" * 20)
@@ -139,7 +110,38 @@ WHERE  column_name like '{}id'
             print('Database connection closed.')
 
 
-def get_all_table_ids(cur, q_identifiers, table_name):
+def get_referenced_tables(cur, tn):
+    """
+
+    :param cur:
+    :param tn:
+    :return:
+    """
+
+    q_referenced_tables = """
+        SELECT table_name
+        FROM   information_schema.columns
+        WHERE  column_name like '{}id'
+        """
+
+    cur.execute(q_referenced_tables.format(tn))
+    this_ref_set = cur.fetchall()
+    ref_set = [item[0] for item in this_ref_set]
+    return ref_set
+
+
+def get_all_table_ids(cur, table_name):
+    """
+    get all the ids for the table
+
+    :param cur: the db connection cursor
+    :param table_name: the table name :)
+    :return: the list of ids for the table
+    """
+    q_identifiers = """
+    SELECT id
+    FROM  {}
+    """
     cur.execute(q_identifiers.format(table_name))
     id_set = cur.fetchall()
     ids = [item[0] for item in id_set]
@@ -147,6 +149,16 @@ def get_all_table_ids(cur, q_identifiers, table_name):
 
 
 def get_tables_size(args, cur):
+    """
+    queries a postgres schema and get the list of non-empty tables
+
+    :param
+            - args (the command line args)
+            - cur (the connection cursor)
+    :returns
+            - a list of table names
+            - a dictionary {table_name; table_size}
+    """
     tables_rows = """
                 SELECT relname,reltuples
         FROM pg_class C
@@ -176,16 +188,7 @@ def get_tables_size(args, cur):
     df_tsizes = pd.DataFrame(rows, columns=cols, index=table_names)
     print(df_tsizes)
     print()
-    #print(tables_sizes)
-    return table_names, tables_sizes
-
-
-def dump_csv(args, qq, scaling_factor, trow):
-    if args.no_seed:
-        qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
-    else:
-        qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(trow[0]),
-                                                                                 index=False)
+    return tables_sizes
 
 
 def get_db_version(cur):
@@ -207,4 +210,4 @@ def show_dbname(cur: connection()) -> NoReturn:
 
 
 if __name__ == '__main__':
-    get_tables(get_args())
+    fill_references(get_args())
