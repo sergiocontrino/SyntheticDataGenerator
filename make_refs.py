@@ -63,14 +63,8 @@ def fill_references(args):
         # just show the db we are querying
         show_dbname(cur)
         # get tables and their sizes
-
         tables_sizes = get_tables_size(args, cur)
 
-        update_with_ref = """
-        update {}
-        set {}id = {}
-        where id = {}
-        """
         for tn in tables_sizes.keys():
             print(tn.upper() + ": ")
             ref_ids = get_all_table_ids(cur, tn)
@@ -81,11 +75,12 @@ def fill_references(args):
             for table_name in ref_set:
                 print(table_name + "... ", end='')
                 table_size = tables_sizes.get(table_name)
-                # subs with size check
+                # check if referenced table is empty
                 if table_name not in tables_sizes:
-                    print(table_name, "is empty, no reference can be added for it")
+                    print("\n" + table_name, "is empty, no reference can be added for it")
                     continue
-
+                # build a random list of ids from referenced table
+                # of the same length of the size of the referring table
                 sampled_ref_id = random.choices(ref_ids, k=int(table_size))
                 ids = get_all_table_ids(cur, table_name)
 
@@ -94,9 +89,11 @@ def fill_references(args):
                 count = cur.rowcount
                 print(count, "Records Updated successfully ")
                 """
+                # updates all the records of the current table
+                # setting the referenceid for the current referenced table
                 counter = 0
                 for i in ids:
-                    cur.execute(update_with_ref.format(table_name, tn, sampled_ref_id[counter], i))
+                    cur.execute(update_stm().format(table_name, tn, sampled_ref_id[counter], i))
                     counter = counter + 1
                 conn.commit()
             print("\n")
@@ -108,6 +105,22 @@ def fill_references(args):
         if conn is not None:
             conn.close()
             print('Database connection closed.')
+
+
+def update_stm():
+    """
+    update a_table
+    set referencedtableid = a_referncedtableid
+    where id = a_tableid
+
+    :return: the SQL statement
+    """
+    update_with_ref = """
+        update {}
+        set {}id = {}
+        where id = {}
+        """
+    return update_with_ref
 
 
 def get_referenced_tables(cur, tn):
