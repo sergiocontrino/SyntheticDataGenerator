@@ -125,16 +125,12 @@ order by 2 desc
             cur.execute(columns_types, (trow[0],))
             column_type = cur.fetchall()
             for crow in column_type:
-                # do int -> summary stat, date ->?
-                # quick temp fix to check date columns
-                # TODO: remove condition!
-                if not crow[0].endswith("dates"):
-                    tcols.append(crow[0])
-                    cur.execute(columns_counts.format(crow[0], trow[0]))
-                    column_count = cur.fetchall()
-                    for ccrow in column_count:
-                        rows.append([trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
-                                     get_precision().format(ccrow[1] / trow[1] * 100)])
+                tcols.append(crow[0])
+                cur.execute(columns_counts.format(crow[0], trow[0]))
+                column_count = cur.fetchall()
+                for ccrow in column_count:
+                    rows.append([trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                                 get_precision().format(ccrow[1] / trow[1] * 100)])
             collist = ", ".join(tcols)
 
             cur.execute(table_export.format(collist, trow[0]))
