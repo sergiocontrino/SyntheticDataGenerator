@@ -20,27 +20,25 @@ optional arguments:
 
 
 
-# from_db
+# source: db
 
 the script queries a database to get all the tables containing data (you can exclude some), get the number of rows for each and then get values counts for all the (categorical) attributes and dump a summary file with those.
 at the same time it produces sample data for the attributes. 
 
-the script focus at the moment at an intermine type db, and will be generalised.
+examples:
 
-to run:
-
-``
-python do_synth.py reference_class reference_sample_size
-``
-
-where reference_class is the class used to scale the sampling across all the database, with reference_sample_size the sample size for the reference class in the generated data.
-
-e.g.
 
 ``
-python do_synth.py patient 4000
+python main.py db
 ``
 
+uses all the default values: the reference class is <i>patient</i>, the reference size is <i>5000</i>, seed used for the sampling is <i>1</i>
+
+``
+python main.py -c referral -t 30000 db
+``
+
+the script runs with <i>referral</i> as the reference class; referral will be used to scale all the other outputs, and <i>30000</i> the sample size for the reference class in the generated data.
 
 
 db connection to be stored in a database.ini file in the same directory.
