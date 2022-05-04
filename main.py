@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from typing import NoReturn
 from get_args import get_args
-from do_synth import get_tables
+from from_db import get_tables
 from from_summaries import read_categorical_risks
 from from_summaries import read_continuous_risks
 
