@@ -38,14 +38,6 @@ def connection():
     con.set_client_encoding('UTF8')
     return con
 
-    # con: connection = psycopg2.connect(
-    #    dbname='ithrivemine',
-    #    user='modmine',
-    #    password='modmine',
-    #    host='localhost',
-    #    port=5432
-    # )
-
 
 def get_tables(args):
     """ Connect to the PostgreSQL database server """
@@ -87,37 +79,40 @@ order by 2 desc
         cols = ['table', 'attribute', 'type', 'value', 'count']
         rows = []
 
-        for trow in df_tsizes.index:
-            tsize = int(df_tsizes.loc[trow].at["rows"])
-            tcols = []
-            cur.execute(columns_types, (trow,))
+        # for each table get the columns and their types
+        for table in df_tsizes.index:
+            t_size = int(df_tsizes.loc[table].at["rows"])
+            t_cols = []
+            cur.execute(columns_types, (table,))
             column_type = cur.fetchall()
-            for crow in column_type:
-                tcols.append(crow[0])
-                cur.execute(columns_counts.format(crow[0], trow))
+
+            # for each column get the all the values and their count
+            for column in column_type:
+                t_cols.append(column[0])
+                cur.execute(columns_counts.format(column[0], table))
                 column_count = cur.fetchall()
                 for ccrow in column_count:
-                    rows.append([trow, crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
-                                 get_precision().format(ccrow[1] / tsize * 100)])
-            collist = ", ".join(tcols)
+                    rows.append([table, column[0], column[1], "\"" + str(ccrow[0]) + "\"",
+                                 get_precision().format(ccrow[1] / t_size * 100)])
+            col_list = ", ".join(t_cols)
 
-            cur.execute(table_export.format(collist, trow))
+            cur.execute(table_export.format(col_list, table))
             tab_exp = cur.fetchall()
 
-            qq = pd.DataFrame(tab_exp, columns=tcols)
+            qq = pd.DataFrame(tab_exp, columns=t_cols)
             #print(qq)
 
             # scale the different tables according to original size.
             # get scaling factor
-            scaling_factor = int(float(df_tsizes.loc[trow, 'ratio']) * args.target_size)
-            print(trow, ":  sampling ", scaling_factor, " records for columns: >>", collist)
+            scaling_factor = int(float(df_tsizes.loc[table, 'ratio']) * args.target_size)
+            print(table, ":  sampling ", scaling_factor, " records for columns: >>", col_list)
 
 
             # dump csv file of sampled data
             if args.no_seed:
-                qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow), index=False)
+                qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table), index=False)
             else:
-                qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(trow),
+                qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
                                                                                          index=False)
 
         summaries = pd.DataFrame(rows, columns=cols)
@@ -125,7 +120,7 @@ order by 2 desc
         summaries.to_csv("summaries.csv")
         print()
 
-        # close the communication with the PostgreSQL
+        # close the communication with PostgreSQL
         cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
