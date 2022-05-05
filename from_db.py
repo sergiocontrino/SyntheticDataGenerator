@@ -58,40 +58,9 @@ def get_tables(args):
         # just show the db we are querying
         show_dbname(cur)
 
-        tables_rows = """
-                SELECT relname,reltuples
-        FROM pg_class C
-        LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-        WHERE 
-          nspname NOT IN ('pg_catalog', 'information_schema') 
-          AND relname NOT IN (""" + get_excluded_tables() + """) 
-          AND relkind='r' 
-          and reltuples > 0
-        ORDER BY reltuples DESC
-                """
-
-        cur.execute(tables_rows)
-
-        class_counts = []  #
-
-        table_row = cur.fetchall()
-        for row in table_row:
-            if row[0] == args.scaling_class:
-                den = row[1]
-            class_counts.append(row)
-
-        cols = ['rows', 'ratio']
-        rows = []
-        ind = []
-        tables_sizes = {}
-
-        for rec in class_counts:
-            rows.append([rec[1], get_precision().format(rec[1] / den)])
-            ind.append(rec[0])
-            tables_sizes.update({rec[0]: rec[1]})
-        df_tsizes = pd.DataFrame(rows, columns=cols, index=ind)
+        # get the tables size (nr of rows)
+        df_tsizes = get_tables_size(args, cur)
         print(df_tsizes)
-
         print()
 
         columns_types = """
@@ -118,22 +87,21 @@ order by 2 desc
         cols = ['table', 'attribute', 'type', 'value', 'count']
         rows = []
 
-        col_dict = {}  # TODO: get directly from df cc
-
-        for trow in table_row:
+        for trow in df_tsizes.index:
+            tsize = int(df_tsizes.loc[trow].at["rows"])
             tcols = []
-            cur.execute(columns_types, (trow[0],))
+            cur.execute(columns_types, (trow,))
             column_type = cur.fetchall()
             for crow in column_type:
                 tcols.append(crow[0])
-                cur.execute(columns_counts.format(crow[0], trow[0]))
+                cur.execute(columns_counts.format(crow[0], trow))
                 column_count = cur.fetchall()
                 for ccrow in column_count:
-                    rows.append([trow[0], crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
-                                 get_precision().format(ccrow[1] / trow[1] * 100)])
+                    rows.append([trow, crow[0], crow[1], "\"" + str(ccrow[0]) + "\"",
+                                 get_precision().format(ccrow[1] / tsize * 100)])
             collist = ", ".join(tcols)
 
-            cur.execute(table_export.format(collist, trow[0]))
+            cur.execute(table_export.format(collist, trow))
             tab_exp = cur.fetchall()
 
             qq = pd.DataFrame(tab_exp, columns=tcols)
@@ -141,27 +109,21 @@ order by 2 desc
 
             # scale the different tables according to original size.
             # get scaling factor
-            scaling_factor = int(float(df_tsizes.loc[trow[0], 'ratio']) * args.target_size)
-            print(trow[0], ":  sampling ", scaling_factor, " records for columns: >>", collist)
+            scaling_factor = int(float(df_tsizes.loc[trow, 'ratio']) * args.target_size)
+            print(trow, ":  sampling ", scaling_factor, " records for columns: >>", collist)
+
 
             # dump csv file of sampled data
             if args.no_seed:
-                qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow[0]), index=False)
+                qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(trow), index=False)
             else:
-                qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(trow[0]),
+                qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(trow),
                                                                                          index=False)
-            col_dict.update({trow[0]: tcols})
 
         summaries = pd.DataFrame(rows, columns=cols)
-
         # print df to file
         summaries.to_csv("summaries.csv")
         print()
-
-        """ 1 df per table, do sample, 
-        n is scaling size for the scaling class, the other number are derived by the table counts)
-        to cvs result        
-        """
 
         # close the communication with the PostgreSQL
         cur.close()
@@ -171,6 +133,46 @@ order by 2 desc
         if conn is not None:
             conn.close()
             print('Database connection closed.')
+
+
+def get_tables_size(args, cur):
+    """
+    queries the db to get the tables and their size
+
+    :param args:
+    :param cur:
+    :return:
+    """
+
+    q_tables_size = """
+        SELECT relname,reltuples
+        FROM pg_class C
+        LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+        WHERE 
+          nspname NOT IN ('pg_catalog', 'information_schema') 
+          AND relname NOT IN (""" + get_excluded_tables() + """) 
+          AND relkind='r' 
+          and reltuples > 0
+        ORDER BY reltuples DESC
+                """
+
+    cur.execute(q_tables_size)
+    class_counts = []  #
+    table_row = cur.fetchall()
+    for row in table_row:
+        if row[0] == args.scaling_class:
+            den = row[1]
+        class_counts.append(row)
+    cols = ['rows', 'ratio']
+    rows = []
+    ind = []
+    tables_sizes = {}
+    for rec in class_counts:
+        rows.append([rec[1], get_precision().format(rec[1] / den)])
+        ind.append(rec[0])
+        tables_sizes.update({rec[0]: rec[1]})
+    df_tsizes = pd.DataFrame(rows, columns=cols, index=ind)
+    return df_tsizes
 
 
 def get_db_version(cur):
