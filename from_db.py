@@ -39,8 +39,16 @@ def connection():
     return con
 
 
-def get_tables(args):
-    """ Connect to the PostgreSQL database server """
+def do_sampling(args):
+    """
+    queries the db to get tables and their size.
+    for each table get the relevant columns and sample their data
+
+    :param args: the args
+    :return: none
+    """
+
+    # Connect to the PostgreSQL database server
     conn = connection()
     try:
         # connect to the PostgreSQL server
@@ -64,49 +72,43 @@ AND column_name not IN ('class', 'identifier')
 ORDER  BY ordinal_position
         """
 
-        columns_counts = """
-        select {}, count(1) 
-from {}
-group by 1 
-order by 2 desc
-        """
-
+        # TODO: add here condition regarding minimum count
+        # i.e. where column(.value) not in (black listed values)
+        # get the black listed values from value_counter
         table_export = """
         select {} 
         from {}
         """
 
-        cols = ['table', 'attribute', 'type', 'value', 'count']
-        rows = []
+        rows = []    # used for debug
 
-        # for each table get the columns and their types
+        # for each table
         for table in df_tsizes.index:
             t_size = int(df_tsizes.loc[table].at["rows"])
             t_cols = []
+
+            # get the columns and their types
             cur.execute(columns_types, (table,))
             column_type = cur.fetchall()
-
             # for each column get the all the values and their count
             for column in column_type:
                 t_cols.append(column[0])
-                cur.execute(columns_counts.format(column[0], table))
-                column_count = cur.fetchall()
-                for ccrow in column_count:
-                    rows.append([table, column[0], column[1], "\"" + str(ccrow[0]) + "\"",
-                                 get_precision().format(ccrow[1] / t_size * 100)])
+                # temp for check.. to be used for checking minimum size
+                value_counter(column, cur, rows, t_size, table)
             col_list = ", ".join(t_cols)
 
+            # get all the data for the relevant columns..
             cur.execute(table_export.format(col_list, table))
             tab_exp = cur.fetchall()
 
+            # ..and put it in a data frame
             qq = pd.DataFrame(tab_exp, columns=t_cols)
             #print(qq)
 
-            # scale the different tables according to original size.
+            # scale the table's data according to original size
             # get scaling factor
             scaling_factor = int(float(df_tsizes.loc[table, 'ratio']) * args.target_size)
             print(table, ":  sampling ", scaling_factor, " records for columns: >>", col_list)
-
 
             # dump csv file of sampled data
             if args.no_seed:
@@ -115,6 +117,8 @@ order by 2 desc
                 qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
                                                                                          index=False)
 
+        # temp: dump a debug summary
+        cols = ['table', 'attribute', 'type', 'value', 'count']
         summaries = pd.DataFrame(rows, columns=cols)
         # print df to file
         summaries.to_csv("summaries.csv")
@@ -130,13 +134,29 @@ order by 2 desc
             print('Database connection closed.')
 
 
+def value_counter(column, cur, rows, t_size, table):
+
+    columns_counts = """
+            select {}, count(1) 
+    from {}
+    group by 1 
+    order by 2 desc
+            """
+
+    cur.execute(columns_counts.format(column[0], table))
+    column_count = cur.fetchall()
+    for ccrow in column_count:
+        rows.append([table, column[0], column[1], "\"" + str(ccrow[0]) + "\"",
+                     get_precision().format(ccrow[1] / t_size * 100)])
+
+
 def get_tables_size(args, cur):
     """
     queries the db to get the tables and their size
 
     :param args:
     :param cur:
-    :return:
+    :return: data frame with table size
     """
 
     q_tables_size = """
@@ -189,4 +209,4 @@ def show_dbname(cur: connection()) -> NoReturn:
 
 
 if __name__ == '__main__':
-    get_tables(get_args())
+    do_sampling(get_args())
