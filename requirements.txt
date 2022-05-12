@@ -1,0 +1,6 @@
+pandas
+datasynth
+setuptools
+psycopg2
+numpy
+synthdatagen

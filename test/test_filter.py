@@ -1,4 +1,4 @@
-"""Test module for synthdatagen.filter"""
+"""Test module for datasynth.filter"""
 import pandas as pd
 from synthdatagen.filter import filter_common_categories
 
