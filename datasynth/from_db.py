@@ -1,6 +1,7 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 from config import config
+from filter import filter_common_categories
 from typing import NoReturn
 from get_args import get_args
 import psycopg2
@@ -94,7 +95,7 @@ ORDER  BY ordinal_position
             for column in column_type:
                 t_cols.append(column[0])
                 # temp for check.. to be used for checking minimum size
-                value_counter(column, cur, rows, t_size, table)
+                #value_counter(column, cur, rows, t_size, table)
             col_list = ", ".join(t_cols)
 
             # get all the data for the relevant columns..
@@ -103,7 +104,7 @@ ORDER  BY ordinal_position
 
             # ..and put it in a data frame
             qq = pd.DataFrame(tab_exp, columns=t_cols)
-            #print(qq)
+            print(table, "-->", qq.shape)
 
             # scale the table's data according to original size
             # get scaling factor
@@ -116,6 +117,9 @@ ORDER  BY ordinal_position
             else:
                 qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
                                                                                          index=False)
+            if table == 'contact':
+                qq1 = filter_common_categories(qq, 2)
+                print(table, "-->", qq1.shape)
 
         # temp: dump a debug summary
         cols = ['table', 'attribute', 'type', 'value', 'count']
