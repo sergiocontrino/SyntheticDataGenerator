@@ -1,0 +1,11 @@
+patientattended,contactwhether,contacthow,clinicianjobtitle,contactdatetime,wasdischarge,cancelledbyclinician,wasfacetoface,urgencyraw
+TRUE,attended,f2f,,,FALSE,FALSE,TRUE,
+TRUE,attended,f2f,,,FALSE,FALSE,TRUE,
+TRUE,attended,face to face,,,FALSE,FALSE,TRUE,
+FALSE,did not attend,generic appointment,,,,FALSE,,
+TRUE,attended,f2f,,,FALSE,FALSE,TRUE,
+TRUE,attended,f2f,,,FALSE,FALSE,TRUE,
+TRUE,attended,f2f,,,FALSE,FALSE,TRUE,
+TRUE,attended,face to face,,,FALSE,FALSE,TRUE,
+FALSE,did not attend,generic appointment,,,,FALSE,,
+TRUE,attended,f2f,,,FALSE,FALSE,TRUE,
