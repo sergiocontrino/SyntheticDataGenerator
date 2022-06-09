@@ -20,7 +20,10 @@ def get_excluded_tables() -> str:
     the list of tables we don't want to consider
     (for example in an intermine schema)
     """
+    # intermine build tables
     exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog', 'osbag_int'"
+    # cv and loader filled tables
+    exclusion_list += ", 'riskfactordefinition', 'problem', 'datasource', 'dataset', 'ethnicity'"
     return exclusion_list
 
 
@@ -95,7 +98,7 @@ ORDER  BY ordinal_position
             for column in column_type:
                 t_cols.append(column[0])
                 # temp for check.. to be used for checking minimum size
-                #value_counter(column, cur, rows, t_size, table)
+                value_counter(column, cur, rows, t_size, table)
             col_list = ", ".join(t_cols)
 
             # get all the data for the relevant columns..
@@ -103,8 +106,18 @@ ORDER  BY ordinal_position
             tab_exp = cur.fetchall()
 
             # ..and put it in a data frame
-            qq = pd.DataFrame(tab_exp, columns=t_cols)
-            print(table, "-->", qq.shape)
+            qq1 = pd.DataFrame(tab_exp, columns=t_cols)
+            print(table, "-->", qq1.shape)
+
+            # if table == "contact":
+            #     continue
+
+            # filter rarely occurring values if the filter threshold is > 1
+            threshold = args.filter_threshold
+            if threshold > 1:
+                qq = filter_common_categories(qq1, threshold)
+            else:
+                qq = qq1
 
             # scale the table's data according to original size
             # get scaling factor
@@ -112,14 +125,13 @@ ORDER  BY ordinal_position
             print(table, ":  sampling ", scaling_factor, " records for columns: >>", col_list)
 
             # dump csv file of sampled data
-            if args.no_seed:
-                qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table), index=False)
+            if len(qq) > 0:
+                if args.no_seed:
+                    qq.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table), index=False)
+                else:
+                    qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table), index=False)
             else:
-                qq.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
-                                                                                         index=False)
-            if table == 'contact':
-                qq1 = filter_common_categories(qq, 2)
-                print(table, "-->", qq1.shape)
+                print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now", threshold)
 
         # temp: dump a debug summary
         cols = ['table', 'attribute', 'type', 'value', 'count']
