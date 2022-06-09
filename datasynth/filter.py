@@ -3,19 +3,25 @@ Submodule for filtering a dataframe by individual frequencies of values per colu
 Provide guarantee that each column contains only 'frequent' values, i.e. only values that
 occur more often than a certain threshold min_count
 """
+from get_args import get_args
 import random
 import numpy as np
 import pandas as pd
 
 
 def values_per_column(df: pd.DataFrame, min_count: int) -> dict:
-    return values_per_column_all(df, min_count)
+    args = get_args()
+    do_dates = args.filter_dates
+    if do_dates:
+        return values_per_column_all(df, min_count)
+    else:
+        return values_per_column_no_date(df, min_count)
 
 
 def values_per_column_all(df: pd.DataFrame, min_count: int) -> dict:
     values_to_keep = {}
     for col in df.columns:
-        print("-*", col)
+        # print("-*", col)
         df_counts = df.value_counts(col)
         mask = df_counts >= min_count
         mask_index = df_counts[mask].index.to_list()
@@ -26,7 +32,7 @@ def values_per_column_all(df: pd.DataFrame, min_count: int) -> dict:
 def values_per_column_no_date(df: pd.DataFrame, min_count: int) -> dict:
     values_to_keep = {}
     for col in df.columns:
-        print("-*", col)
+        # print("-*", col)
         if "date" in col:
             values_to_keep[col] = df[col].tolist()
         else:
@@ -40,14 +46,14 @@ def values_per_column_no_date(df: pd.DataFrame, min_count: int) -> dict:
 def bool_dataframe_columns_to_string(dfin):
     df = dfin.convert_dtypes()
     bool_cols = df.dtypes[df.dtypes == pd.BooleanDtype()].index.tolist()
-    print(bool_cols)
+    # print(bool_cols)
     if len(bool_cols) == 0:
         return df, []
     d = {True: 'TRUE', False: 'FALSE'}
-    print(d)
 
     ddf = df.apply(lambda c: c.replace(d) if c.name in bool_cols else c)
-    print(ddf)
+    # print(ddf)
+
     #    return df.where(mask, df.replace(d)), bool_cols
     #    return df.replace(d), bool_cols
     # print("++++++")
@@ -57,8 +63,8 @@ def bool_dataframe_columns_to_string(dfin):
 def filter_common_categories(df: pd.DataFrame, min_count: int = 3) -> pd.DataFrame:
     df_filt = df.copy()
 
-    print("--init")
-    print(df_filt)
+    # print("--init")
+    # print(df_filt)
 
 
     # drop columns that only contain nan
@@ -67,12 +73,12 @@ def filter_common_categories(df: pd.DataFrame, min_count: int = 3) -> pd.DataFra
 
     df_filt, bool_cols = bool_dataframe_columns_to_string(df_filt)
 
-    print("--pre")
-    print(df_filt)
+    # print("--pre")
+    # print(df_filt)
 
     nan_hash = random.getrandbits(16)
 
-    print("-->>>pre", nan_hash)
+    # print("-->>>pre", nan_hash)
 
     # df_filt.fillna(nan_hash, inplace=True, downcast='infer')
     df_filt.fillna(np.nan, inplace=True, downcast='infer')
@@ -87,15 +93,12 @@ def filter_common_categories(df: pd.DataFrame, min_count: int = 3) -> pd.DataFra
 
     multi_index = tuple([values_to_keep[col] for col in df_filt.columns])
 
-    print("d3", multi_index)
+    # print("d3", multi_index)
     # print(df_filt.columns.to_list())
 
     df_mult = df_filt.reset_index().set_index(df_filt.columns.to_list())
 
-    print("d4", df_mult.shape)
-    # print(multi_index)
-    # print(df_mult)
-    print("=-=-=")
+    # print("d4", df_mult.shape)
 
     df_mult = df_mult.loc[multi_index, :].reset_index().set_index('index')
 
@@ -104,6 +107,5 @@ def filter_common_categories(df: pd.DataFrame, min_count: int = 3) -> pd.DataFra
     # df_mult.reset_index().set_index('index')
 
     # df_mult.replace(nan_hash, np.nan)
-    print("&&&&&&&&")
+    # print("&&&&&&&&")
     return df_mult
-    # return df
