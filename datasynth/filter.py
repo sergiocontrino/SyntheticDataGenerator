@@ -53,10 +53,6 @@ def bool_dataframe_columns_to_string(dfin):
 
     ddf = df.apply(lambda c: c.replace(d) if c.name in bool_cols else c)
     # print(ddf)
-
-    #    return df.where(mask, df.replace(d)), bool_cols
-    #    return df.replace(d), bool_cols
-    # print("++++++")
     return ddf, bool_cols
 
 
@@ -66,20 +62,14 @@ def filter_common_categories(df: pd.DataFrame, min_count: int = 3) -> pd.DataFra
     # print("--init")
     # print(df_filt)
 
-
     # drop columns that only contain nan
     df_filt.dropna(how="all", axis=1, inplace=True)
-
-
     df_filt, bool_cols = bool_dataframe_columns_to_string(df_filt)
 
     # print("--pre")
     # print(df_filt)
 
     nan_hash = random.getrandbits(16)
-
-    # print("-->>>pre", nan_hash)
-
     # df_filt.fillna(nan_hash, inplace=True, downcast='infer')
     df_filt.fillna(np.nan, inplace=True, downcast='infer')
     # print("--post")
@@ -88,24 +78,15 @@ def filter_common_categories(df: pd.DataFrame, min_count: int = 3) -> pd.DataFra
     values_to_keep = values_per_column(df_filt, min_count)
     # print("d2", df_filt.shape)
     # print(df_filt.columns)
-    # print("----")
-    # print(values_to_keep['patientattended'])
 
     multi_index = tuple([values_to_keep[col] for col in df_filt.columns])
-
     # print("d3", multi_index)
     # print(df_filt.columns.to_list())
 
     df_mult = df_filt.reset_index().set_index(df_filt.columns.to_list())
-
     # print("d4", df_mult.shape)
 
     df_mult = df_mult.loc[multi_index, :].reset_index().set_index('index')
 
-    # index = pd.MultiIndex.from_tuples(multi_index)
-    # df_mult = df_mult.loc[multi_index, :]
-    # df_mult.reset_index().set_index('index')
-
     # df_mult.replace(nan_hash, np.nan)
-    # print("&&&&&&&&")
     return df_mult
