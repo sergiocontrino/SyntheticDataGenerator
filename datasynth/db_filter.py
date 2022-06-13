@@ -1,9 +1,7 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 import random
-
 from config import config
-from filter import filter_common_categories
 from typing import NoReturn
 from get_args import get_args
 import psycopg2
@@ -78,22 +76,16 @@ AND column_name not IN ('class', 'identifier')
 ORDER  BY ordinal_position
         """
 
-        # TODO: add here condition regarding minimum count
-        # i.e. where column(.value) not in (black listed values)
-        # get the black listed values from value_counter
         table_export = """
         select {} 
         from {}
         """
 
-        rows = []  # used for debug
         target = args.target_size
         threshold = args.filter_threshold
 
         # for each table
         for table in df_tsizes.index:
-            # if table != "contact":
-            #     continue
 
             t_size = int(df_tsizes.loc[table].at["rows"])
             t_cols = []
@@ -111,23 +103,12 @@ ORDER  BY ordinal_position
                 cols_count = value_counter(cur, table, column)
                 # print(cols_count)
                 syn_col = build_synth_col(table, t_size, column, cols_count, target)
-                syn_table[column] = syn_col
+                syn_table[column[0]] = syn_col
             col_list = ", ".join(t_cols)
 
-            print("==" *20)
-            print(syn_table)
-            print("--" *20)
-
-            # # ..and put it in a data frame
-            # qq1 = pd.DataFrame(tab_exp, columns=t_cols)
-            # print(table, "-->", qq1.shape)
-            #
-            # # filter rarely occurring values if the filter threshold is > 1
-            # threshold = args.filter_threshold
-            # if threshold > 1:
-            #     qq = filter_common_categories(qq1, threshold)
-            # else:
-            #     qq = qq1
+            # print("==" *20)
+            # print(syn_table)
+            # print("--" *20)
 
             # scale the table's data according to original size
             # get scaling factor
@@ -147,13 +128,6 @@ ORDER  BY ordinal_position
                 print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now",
                       threshold)
 
-        # # temp: dump a debug summary
-        # cols = ['table', 'attribute', 'type', 'value', 'count']
-        # summaries = pd.DataFrame(rows, columns=cols)
-        # # print df to file
-        # summaries.to_csv("summaries.csv")
-        # print()
-
         # close the communication with PostgreSQL
         cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -162,7 +136,6 @@ ORDER  BY ordinal_position
         if conn is not None:
             conn.close()
             print('Database connection closed.')
-
 
 
 def value_counter(cur, table, column):
@@ -177,27 +150,6 @@ def value_counter(cur, table, column):
     column_count = cur.fetchall()
     return column_count
 
-    # for ccrow in column_count:
-    #     print(column[0])
-    #     rows.append([table, column[0], column[1], "\"" + str(ccrow[0]) + "\"",
-    #                  get_precision().format(ccrow[1] / t_size * 100)])
-
-def value_counter_o(column, cur, rows, t_size, table):
-    columns_counts = """
-            select {}, count(1) 
-    from {}
-    group by 1 
-    order by 2 desc
-            """
-
-    cur.execute(columns_counts.format(column[0], table))
-    column_count = cur.fetchall()
-    print(column_count)
-    for ccrow in column_count:
-        print(column[0])
-        rows.append([table, column[0], column[1], "\"" + str(ccrow[0]) + "\"",
-                     get_precision().format(ccrow[1] / t_size * 100)])
-
 
 def build_synth_col(table, table_size, column, cols_count, target_size):
     """
@@ -208,11 +160,7 @@ def build_synth_col(table, table_size, column, cols_count, target_size):
     col_counts: [(True, 73906), (False, 15470), (None, 1050)]
     target_size: 100
 
-    [table, column, column_type, value, frequency (percentage)]
-    ['currentview', 'attendancedifficulties', 'boolean', '"True"', '33.15']
-
     """
-    # target_size = 100
     col = []
     added = 0
 
@@ -237,103 +185,6 @@ def build_synth_col(table, table_size, column, cols_count, target_size):
 
     return col
 
-    # if i == 0:
-    #         build_output(line, synthetic_col, target_size)
-    #         # add_record(count, line, col, value)
-    #         i = i + 1
-    #     else:
-    #         prev_col = col[len(col) - 1]
-    #         if this_col != prev_col:
-    #             # the RF changed, let's output the previous one
-    #
-    #             # - shuffle the synth list
-    #             random.shuffle(synthetic_col)
-    #             # - just some screen messages
-    #             verbose_output(prev_col, synthetic_col)
-    #
-    #             # - make a df for export a csv list
-    #             # TODO: there must be a better way...
-    #             d = {"value": synthetic_col}
-    #             pd.DataFrame(d).to_csv('{0}.csv'.format(col[len(col) - 1]), index=False)
-    #
-    #             # empty lists
-    #             count, col, synthetic_col, value = [], [], [], []
-    #
-    #             # start anew with current RF
-    #             build_output(line, synthetic_col, args)
-    #             # add_record(count, line, col, value)
-    #         else:
-    #             # same RF: just append
-    #             build_output(line, synthetic_col, args)
-    #             # add_record(count, line, col, value)
-
-    # for line in cols_count:
-    #     this_col = line.split(',')[1]
-    #     if i == 0:
-    #         build_output(line, synthetic_col, target_size)
-    #         # add_record(count, line, col, value)
-    #         i = i + 1
-    #     else:
-    #         prev_col = col[len(col) - 1]
-    #         if this_col != prev_col:
-    #             # the RF changed, let's output the previous one
-    #
-    #             # - shuffle the synth list
-    #             random.shuffle(synthetic_col)
-    #             # - just some screen messages
-    #             verbose_output(prev_col, synthetic_col)
-    #
-    #             # - make a df for export a csv list
-    #             # TODO: there must be a better way...
-    #             d = {"value": synthetic_col}
-    #             pd.DataFrame(d).to_csv('{0}.csv'.format(col[len(col) - 1]), index=False)
-    #
-    #             # empty lists
-    #             count, col, synthetic_col, value = [], [], [], []
-    #
-    #             # start anew with current RF
-    #             build_output(line, synthetic_col, args)
-    #             # add_record(count, line, col, value)
-    #         else:
-    #             # same RF: just append
-    #             build_output(line, synthetic_col, args)
-    #             # add_record(count, line, col, value)
-
-
-    # the last rf
-    #    d = {"value": value, "count": count}
-
-
-
-    # random.shuffle(synthetic_col)
-    # d = {"value": synthetic_col}
-    # qq = pd.DataFrame(d)
-    # qq.to_csv('{0}.csv'.format(col[len(col) - 1]), index=False)
-    #
-    # print("*" * 20)
-    # verbose_output(col[len(col) - 1], synthetic_col)
-
-    # return col, value, count
-
-
-def build_output(line, risk_output, target_size):
-    """
-    add the value in synth data, proportionally to its original frequency,
-
-    :param line:
-    :param risk_output:
-    :param args:
-    :return:
-    """
-
-    # count/tot
-    pc = float((line.split(',')[4]))
-
-    # number of items of value value in the synth rf list
-    rr = int(pc/100 * target_size)
-    for t in range(rr):
-        risk_output.append(line.split(',')[3])
-
 
 def verbose_output(col, synthetic_col):
     # TODO: case insensitive null
@@ -341,22 +192,6 @@ def verbose_output(col, synthetic_col):
     print("Column", col, ": size of synth data set =", len(synthetic_col), "with",
           synthetic_col.count("NULL"), "null values")
     print(synthetic_col)
-
-
-
-
-def add_record(count, line, risk, value):
-    """
-    not needed!
-    :param count:
-    :param line:
-    :param risk:
-    :param value:
-    :return:
-    """
-    risk.append(line.split(',')[0])
-    value.append(line.split(',')[2])
-    count.append(int(line.split(',')[3]))
 
 
 def get_tables_size(args, cur):
