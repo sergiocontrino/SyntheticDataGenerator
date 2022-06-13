@@ -1,10 +1,6 @@
 import argparse
 
-# TODO: - add seeding y/n/value?
-#       - add which type for summaries
-#       - extract printing message (!= in different files)
 # note: from summaries uses the target size for all variables
-
 
 def get_args():
     parser = argparse.ArgumentParser(description=__doc__)
