@@ -99,30 +99,23 @@ ORDER  BY ordinal_position
             # print(column_type)
             for column in column_type:
                 t_cols.append(column[0])
-                # print("--", t_cols, t_size, column)
-                cols_count = value_counter(cur, table, column)
-                # print(cols_count)
-                syn_col = build_synth_col(table, t_size, column, cols_count, target)
+                cols_count = value_counter(cur, table, column, threshold)
+                syn_col = build_synth_col(t_size, cols_count, target)
                 syn_table[column[0]] = syn_col
-            col_list = ", ".join(t_cols)
-
-            # print("==" *20)
-            # print(syn_table)
-            # print("--" *20)
 
             # scale the table's data according to original size
             # get scaling factor
             scaling_factor = int(float(df_tsizes.loc[table, 'ratio']) * args.target_size)
-            print(table, ":  sampling ", scaling_factor, " records for columns: >>", col_list)
+            print(table, ":  sampling", scaling_factor, "records..")
+            # print("for columns: >>", col_list)
 
             # dump csv file of sampled data
             if len(syn_table) > 0:
-                syn_table.to_csv('{0}.csv'.format(table), index=False)
-
                 if args.no_seed:
-                    syn_table.sample(n=scaling_factor, replace=True).to_csv('{0}scaled.csv'.format(table), index=False)
+                    syn_table.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table), index=False)
                 else:
-                    syn_table.sample(n=scaling_factor, random_state=args.seed, replace=True).to_csv('{0}sscaled.csv'.format(table),
+                    syn_table.sample(n=scaling_factor,
+                                     random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
                                                                                              index=False)
             else:
                 print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now",
@@ -138,23 +131,24 @@ ORDER  BY ordinal_position
             print('Database connection closed.')
 
 
-def value_counter(cur, table, column):
+def value_counter(cur, table, column, threshold):
     columns_counts = """
             select {}, count(1) 
     from {}
-    group by 1 
+    group by 1
+    having count(1) >= {} 
     order by 2 desc
             """
 
-    cur.execute(columns_counts.format(column[0], table))
+    cur.execute(columns_counts.format(column[0], table, threshold))
+
     column_count = cur.fetchall()
     return column_count
 
 
-def build_synth_col(table, table_size, column, cols_count, target_size):
+def build_synth_col(table_size, cols_count, target_size):
     """
     input:
-    table: contact
     table_size: 90426
     column: patientattended
     col_counts: [(True, 73906), (False, 15470), (None, 1050)]
@@ -163,26 +157,21 @@ def build_synth_col(table, table_size, column, cols_count, target_size):
     """
     col = []
     added = 0
+    this_value = ""
 
     for line in cols_count:
         this_value = line[0]
         this_count = line[1]
         tg_count = int(this_count * target_size/table_size)
-        # print(this_value, this_count, tg_count, table_size, target_size)
         added += tg_count
         for t in range(tg_count):
             col.append(this_value)
 
     if added < target_size:
-        print(target_size-added)
-        for r in range (target_size - added):
+        for r in range(target_size - added):
             col.append(this_value)
 
     random.shuffle(col)
-
-    cc = pd.DataFrame({column: col})
-    print(cc)
-
     return col
 
 
