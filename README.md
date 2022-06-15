@@ -1,20 +1,22 @@
 # main
 <pre>
-usage: main.py [-h] [-n] [-c SCALING_CLASS] [-t TARGET_SIZE] [-s SEED] [-u] [data_source] [INPUT_FILE] [OUTPUT_FILE]
+usage: main.py [-h] [-c SCALING_CLASS] [-f FILTER_THRESHOLD] [-n] [-s SEED] [-t TARGET_SIZE] [-u] [SOURCE] [INPUT_FILE] [OUTPUT_FILE]
 
 positional arguments:
-  data_source           Data source (database or file of summaries stats) to be used to generate a new synthetic data set.[db, summaries] default is summaries.
+  SOURCE                Data source (database or file of summaries stats) to be used to generate a new synthetic data set.[db, summaries] default is summaries.
   INPUT_FILE            path to the input file (read from stdin if omitted)
   OUTPUT_FILE           path to the output file (write to stdout if omitted)
 
 optional arguments:
   -h, --help            show this help message and exit
-  -n, --numerical       Flag the summaries in the input file as numerical (continuous).
   -c SCALING_CLASS, --scaling_class SCALING_CLASS
-                        Entity (table) in the database used as reference dimension for scaling. Default is patient
-  -t TARGET_SIZE, --target_size TARGET_SIZE
-                        The desired number of synthetic records for the scaling class/the variables in the summaries.Default is 5000.
+                        [db] Entity (table) in the database used as reference dimension for scaling. Default is patient
+  -f FILTER_THRESHOLD, --filter_threshold FILTER_THRESHOLD
+                        [db] The minimum number of occurrences for a single value to be used in the generation.Default is 1, i.e. no filtering.
+  -n, --numerical       [summaries] Flag the summaries in the input file as numerical (continuous).
   -s SEED, --seed SEED  Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. Default is 1.
+  -t TARGET_SIZE, --target_size TARGET_SIZE
+                        [db] The desired number of synthetic records for the scaling class/the variables in the summaries.Default is 5000.
   -u, --no_seed         Unseeded: don't use a seed for the sampling.
 </pre>
 
@@ -22,8 +24,9 @@ optional arguments:
 
 # source: db
 
-the script queries a database to get all the tables containing data (you can exclude some), get the number of rows for each and then get values counts for all the (categorical) attributes and dump a summary file with those.
-at the same time it produces sample data for the attributes. 
+the script queries a database to get all the tables containing data (you can exclude some), get the number of rows for each and then get values counts for all the (categorical) attributes (columns).
+If a threshold >1 is set, it will exclude from the count all values occurring < threshold times in the column.
+
 
 examples:
 

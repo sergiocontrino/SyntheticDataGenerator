@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 from typing import NoReturn
 from get_args import get_args
-from from_db import do_sampling
+from db_filter import sample
 from from_summaries import read_categorical_risks
 from from_summaries import read_continuous_risks
-
 
 
 def main() -> NoReturn:
@@ -26,8 +25,10 @@ if __name__ == '__main__':
         print("Scaling class:", str(args.scaling_class))
         print("Target size for synthetic datasets:", str(args.target_size))
         print("Filter threshold:", str(args.filter_threshold))
-        print("Filtering dates:", str(args.filter_dates))
-        do_sampling(args)
+        # print("Filtering dates:", str(args.filter_dates))
+        if not args.no_seed:
+            print("Seeded generation with seed =", args.seed)
+        sample(args)
     elif args.numerical:
         read_continuous_risks(args)
     else:

@@ -21,9 +21,9 @@ def get_args():
         "-c", "--scaling_class", type=str, default="patient",
         help="[db] Entity (table) in the database used as reference dimension for scaling. "
         "Default is patient")
-    parser.add_argument(
-        "-d", "--filter_dates", action="store_true",
-        help="[db] Set the filter to work also on date fields (by default they are not filtered by threshold).")
+    # parser.add_argument(
+    #     "-d", "--filter_dates", action="store_true",
+    #     help="[db] Set the filter to work also on date fields (by default they are not filtered by threshold).")
     parser.add_argument(
         "-f", "--filter_threshold", type=int, default=1,
         help="[db] The minimum number of occurrences for a single value to be used in the generation."

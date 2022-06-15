@@ -10,6 +10,7 @@ import pandas as pd
 
 def main() -> NoReturn:
     """
+    NOT USED ANY LONGER (substituted by db_filter)
 
     :return: none
     """
