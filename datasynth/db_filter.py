@@ -19,6 +19,8 @@ def get_excluded_tables() -> str:
     """
     the list of tables we don't want to consider
     (for example in an intermine schema)
+
+    TODO: get them from a config file?
     """
     # intermine build tables
     exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog', 'osbag_int'"
@@ -30,6 +32,8 @@ def get_excluded_tables() -> str:
 def get_precision() -> str:
     """
     the number of decimals we want to keep for our floats
+
+    TODO: do we really need it? get it from a config file?
     """
     precision = """{:.2f}"""
     return precision
@@ -69,9 +73,9 @@ def sample(args):
         print()
 
         # types are not strictly needed
-        # TODO remove
+        # TODO remove type, add get_excluded_columns?
 
-        columns_types = """
+        q_columns = """
         SELECT column_name, data_type
 FROM   information_schema.columns
 WHERE  table_name = %s
@@ -82,22 +86,21 @@ ORDER  BY ordinal_position
 
         target = args.target_size
         threshold = args.filter_threshold
+        seed = args.seed
+        unseeded = args.no_seed
 
         # for each table
         for table in df_tsizes.index:
-
             t_size = int(df_tsizes.loc[table].at["rows"])
-            # t_cols = []
 
             # initialise the df of synth data for the table
             syn_table = pd.DataFrame()
 
             # get the columns (and their types)
-            cur.execute(columns_types, (table,))
-            column_type = cur.fetchall()
+            cur.execute(q_columns, (table,))
+            columns = cur.fetchall()
             # for each column get the all the values and their count
-            for column in column_type:
-                # t_cols.append(column[0])
+            for column in columns:
                 # get the counts
                 cols_count = value_counter(cur, table, column, threshold)
                 # build the synthetic column
@@ -118,7 +121,7 @@ ORDER  BY ordinal_position
                 else:
                     syn_table.sample(n=scaling_factor,
                                      random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
-                                                                                             index=False)
+                                                                                  index=False)
             else:
                 print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now",
                       threshold)
@@ -136,9 +139,11 @@ ORDER  BY ordinal_position
 def value_counter(cur, table, column, threshold):
     """
     remove rare occurrences and get the counts
+
+    note: by default threshold =1
     """
 
-    columns_counts = """
+    q_columns_count = """
     select {}, count(1) 
     from {}
     group by 1
@@ -146,10 +151,10 @@ def value_counter(cur, table, column, threshold):
     order by 2 desc
             """
 
-    cur.execute(columns_counts.format(column[0], table, threshold))
+    cur.execute(q_columns_count.format(column[0], table, threshold))
 
-    column_count = cur.fetchall()
-    return column_count
+    columns_count = cur.fetchall()
+    return columns_count
 
 
 def build_synth_col(table_size, cols_count, target_size):
@@ -168,7 +173,7 @@ def build_synth_col(table_size, cols_count, target_size):
     for line in cols_count:
         this_value = line[0]
         this_count = line[1]
-        tg_count = int(this_count * target_size/table_size)
+        tg_count = int(this_count * target_size / table_size)
         added += tg_count
         for t in range(tg_count):
             col.append(this_value)
