@@ -22,7 +22,7 @@ def get_excluded_tables() -> str:
     """
     # intermine build tables
     exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog', 'osbag_int'"
-    # cv and loader filled tables
+    # cv and tables filled by loader (dataset/datasource)
     exclusion_list += ", 'riskfactordefinition', 'problem', 'datasource', 'dataset', 'ethnicity'"
     return exclusion_list
 
@@ -43,10 +43,11 @@ def connection():
     return con
 
 
-def do_sampling(args):
+def sample(args):
     """
     queries the db to get tables and their size.
-    for each table get the relevant columns and sample their data
+    for each table get the relevant columns, filter rarely occurring values
+    and produce a csv file of required size of synthetic data.
 
     :param args: the args
     :return: none
@@ -67,6 +68,9 @@ def do_sampling(args):
         print(df_tsizes)
         print()
 
+        # types are not strictly needed
+        # TODO remove
+
         columns_types = """
         SELECT column_name, data_type
 FROM   information_schema.columns
@@ -76,11 +80,6 @@ AND column_name not IN ('class', 'identifier')
 ORDER  BY ordinal_position
         """
 
-        table_export = """
-        select {} 
-        from {}
-        """
-
         target = args.target_size
         threshold = args.filter_threshold
 
@@ -88,19 +87,22 @@ ORDER  BY ordinal_position
         for table in df_tsizes.index:
 
             t_size = int(df_tsizes.loc[table].at["rows"])
-            t_cols = []
+            # t_cols = []
 
+            # initialise the df of synth data for the table
             syn_table = pd.DataFrame()
 
-            # get the columns and their types
+            # get the columns (and their types)
             cur.execute(columns_types, (table,))
             column_type = cur.fetchall()
             # for each column get the all the values and their count
-            # print(column_type)
             for column in column_type:
-                t_cols.append(column[0])
+                # t_cols.append(column[0])
+                # get the counts
                 cols_count = value_counter(cur, table, column, threshold)
+                # build the synthetic column
                 syn_col = build_synth_col(t_size, cols_count, target)
+                # add it to the data frame
                 syn_table[column[0]] = syn_col
 
             # scale the table's data according to original size
@@ -132,8 +134,12 @@ ORDER  BY ordinal_position
 
 
 def value_counter(cur, table, column, threshold):
+    """
+    remove rare occurrences and get the counts
+    """
+
     columns_counts = """
-            select {}, count(1) 
+    select {}, count(1) 
     from {}
     group by 1
     having count(1) >= {} 
@@ -171,6 +177,8 @@ def build_synth_col(table_size, cols_count, target_size):
         for r in range(target_size - added):
             col.append(this_value)
 
+    # reproducibility
+    random.seed(3)
     random.shuffle(col)
     return col
 
@@ -242,4 +250,4 @@ def show_dbname(cur: connection()) -> NoReturn:
 
 
 if __name__ == '__main__':
-    do_sampling(get_args())
+    sample(get_args())
