@@ -104,7 +104,7 @@ ORDER  BY ordinal_position
                 # get the counts
                 cols_count = value_counter(cur, table, column, threshold)
                 # build the synthetic column
-                syn_col = build_synth_col(t_size, cols_count, target)
+                syn_col = build_synth_col(t_size, cols_count, target, seed, unseeded)
                 # add it to the data frame
                 syn_table[column[0]] = syn_col
 
@@ -115,13 +115,15 @@ ORDER  BY ordinal_position
             # print("for columns: >>", col_list)
 
             # dump csv file of sampled data
+            # note: removing trailing 0 in the date (introduced because of nulls -> float)
             if len(syn_table) > 0:
                 if args.no_seed:
-                    syn_table.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table), index=False)
+                    syn_table.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table),
+                                                                            float_format="%.0f", index=False)
                 else:
                     syn_table.sample(n=scaling_factor,
                                      random_state=args.seed, replace=True).to_csv('{0}.csv'.format(table),
-                                                                                  index=False)
+                                                                                  float_format="%.0f", index=False)
             else:
                 print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now",
                       threshold)
@@ -157,7 +159,7 @@ def value_counter(cur, table, column, threshold):
     return columns_count
 
 
-def build_synth_col(table_size, cols_count, target_size):
+def build_synth_col(table_size, cols_count, target_size, seed, unseeded):
     """
     input:
     table_size: 90426
@@ -182,8 +184,9 @@ def build_synth_col(table_size, cols_count, target_size):
         for r in range(target_size - added):
             col.append(this_value)
 
-    # reproducibility
-    random.seed(3)
+    # seed can be used for reproducibility
+    if not unseeded:
+        random.seed(seed)
     random.shuffle(col)
     return col
 
