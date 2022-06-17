@@ -45,19 +45,3 @@ def get_args():
 
     args = parser.parse_args()
     return args
-
-
-def get_scaling_class() -> str:
-    """
-    sets the default class we use to scale the db
-    """
-    scaling_class = "patient"
-    return scaling_class
-
-
-def get_target_size() -> int:
-    """
-    sets the default target size of the scaling class
-    """
-    scaling_size = 5000
-    return scaling_size
