@@ -1,5 +1,48 @@
 #!/usr/bin/python
 
+import psycopg2
+import pyodbc
+from configparser import ConfigParser
+
+conf_file = 'datasynth/database.ini'
+
+PG = 'postgresql'
+MS = 'mssqlserver'
+
+
+def config(vendor):
+    # create a parser
+    parser = ConfigParser()
+    # read config file
+    parser.read(conf_file)
+
+    if vendor == "ms":
+        section = MS
+    else:
+        section = PG
+
+    # get section, default to postgresql
+    db = {}
+    if parser.has_section(section):
+        params = parser.items(section)
+        for param in params:
+            db[param[0]] = param[1]
+    else:
+        raise Exception('Section {0} not found in the {1} file'.format(section, conf_file))
+    return db
+
+
+def connection(vendor):
+    # read connection parameters
+    params = config(vendor)
+    if vendor == "pg":
+        con: connection = psycopg2.connect(**params)
+        con.set_client_encoding('UTF8')
+    else:
+        con: connection = pyodbc.connect(**params)
+    return con
+
+
 def get_excluded_tables() -> str:
     """
     the list of tables we don't want to consider
@@ -14,7 +57,7 @@ def get_excluded_tables() -> str:
     return exclusion_list
 
 
-qpg_tables_size = """
+pg_tables_size = """
     SELECT relname,reltuples
     FROM pg_class C
     LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
@@ -25,7 +68,9 @@ qpg_tables_size = """
       and reltuples > 0
     ORDER BY reltuples DESC
             """
-qms_tables_size = """
+
+
+ms_tables_size = """
 SELECT
 QUOTENAME(SCHEMA_NAME(sOBJ.schema_id)) + '.' + QUOTENAME(sOBJ.name) AS [TableName]
 , SUM(sPTN.Rows) AS [RowCount]
@@ -46,7 +91,7 @@ ORDER BY [RowCount] DESC
             """
 
 
-qpg_columns = """
+pg_columns = """
 SELECT column_name, data_type
 FROM   information_schema.columns
 WHERE  table_name = %s
@@ -55,7 +100,7 @@ AND column_name not IN ('class', 'identifier')
 ORDER  BY ordinal_position
         """
 
-qms_columns = """
+ms_columns = """
 USE dbname;
 SELECT sys.columns.name
 FROM sys.objects INNER JOIN sys.columns
