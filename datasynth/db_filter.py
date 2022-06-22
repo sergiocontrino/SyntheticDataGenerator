@@ -3,7 +3,6 @@
 import random
 from typing import NoReturn
 from get_args import get_args
-import psycopg2
 import pandas as pd
 import queries as q
 
@@ -48,12 +47,7 @@ def sample(args):
     :return: none
     """
 
-    if args.mssqlserver:
-        db_vendor = "ms"
-        db_error = "pyodbc.DatabaseError"  # TODO check!
-    else:
-        db_vendor = "pg"
-        db_error = "psycopg2.DatabaseError"
+    db_vendor = get_db_vendor(args)
 
     # Connect to the database server
     conn = q.connection(db_vendor)
@@ -121,13 +115,29 @@ def sample(args):
 
         # close the communication with PostgreSQL
         cur.close()
-    except (Exception, db_error) as error:
+    except (Exception, get_db_error(args)) as error:
         # except (Exception, psycopg2.DatabaseError) as error:
         print(error)
     finally:
         if conn is not None:
             conn.close()
             print('Database connection closed.')
+
+
+def get_db_vendor(args):
+    if args.mssqlserver:
+        db_vendor = "ms"
+    else:
+        db_vendor = "pg"
+    return db_vendor
+
+
+def get_db_error(args):
+    if args.mssqlserver:
+        db_error = "pyodbc.DatabaseError"  # TODO check!
+    else:
+        db_error = "psycopg2.DatabaseError"
+    return db_error
 
 
 def value_counter(cur, table, column, threshold):
@@ -201,19 +211,9 @@ def get_tables_size(args, cur):
     :return: data frame with table size
     """
 
-    q_tables_size = """
-        SELECT relname,reltuples
-        FROM pg_class C
-        LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-        WHERE 
-          nspname NOT IN ('pg_catalog', 'information_schema') 
-          AND relname NOT IN (""" + get_excluded_tables() + """) 
-          AND relkind='r' 
-          and reltuples > 0
-        ORDER BY reltuples DESC
-                """
-
-    cur.execute(q_tables_size)
+    db_vendor = get_db_vendor(args)
+    tables_size = getattr(q, '{}_tables_size'.format(db_vendor))
+    cur.execute(tables_size)
     class_counts = []  #
     table_row = cur.fetchall()
     for row in table_row:
