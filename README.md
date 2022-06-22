@@ -1,6 +1,6 @@
 # main
 <pre>
-usage: main.py [-h] [-c SCALING_CLASS] [-f FILTER_THRESHOLD] [-n] [-s SEED] [-t TARGET_SIZE] [-u] [SOURCE] [INPUT_FILE] [OUTPUT_FILE]
+usage: main.py [-h] [-c SCALING_CLASS] [-f FILTER_THRESHOLD] [-m] [-t TARGET_SIZE] [-n] [-s SEED] [-u] [SOURCE] [INPUT_FILE] [OUTPUT_FILE]
 
 positional arguments:
   SOURCE                Data source (database or file of summaries stats) to be used to generate a new synthetic data set.[db, summaries] default is summaries.
@@ -13,11 +13,13 @@ optional arguments:
                         [db] Entity (table) in the database used as reference dimension for scaling. Default is patient
   -f FILTER_THRESHOLD, --filter_threshold FILTER_THRESHOLD
                         [db] The minimum number of occurrences for a single value to be used in the generation.Default is 1, i.e. no filtering.
-  -n, --numerical       [summaries] Flag the summaries in the input file as numerical (continuous).
-  -s SEED, --seed SEED  Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. Default is 1.
+  -m, --mssqlserver     [db] Connect to a MS SQL Server database. Default is PostgreSQL.
   -t TARGET_SIZE, --target_size TARGET_SIZE
                         [db] The desired number of synthetic records for the scaling class/the variables in the summaries.Default is 5000.
+  -n, --numerical       [summaries] Flag the summaries in the input file as numerical (continuous).
+  -s SEED, --seed SEED  Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. Default is 1.
   -u, --no_seed         Unseeded: don't use a seed for the sampling.
+
 </pre>
 
 
