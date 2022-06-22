@@ -1,12 +1,11 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 import random
-from config import config
 from typing import NoReturn
 from get_args import get_args
 import psycopg2
 import pandas as pd
-
+import queries as q
 
 def main() -> NoReturn:
     """
@@ -39,14 +38,6 @@ def get_precision() -> str:
     return precision
 
 
-def connection():
-    # read connection parameters
-    params = config()
-    con: connection = psycopg2.connect(**params)
-    con.set_client_encoding('UTF8')
-    return con
-
-
 def sample(args):
     """
     queries the db to get tables and their size.
@@ -57,15 +48,22 @@ def sample(args):
     :return: none
     """
 
-    # Connect to the PostgreSQL database server
-    conn = connection()
+    if args.mssqlserver:
+        db_vendor = "ms"
+        db_error = "pyodbc.DatabaseError"  # TODO check!
+    else:
+        db_vendor = "pg"
+        db_error = "psycopg2.DatabaseError"
+
+    # Connect to the database server
+    conn = q.connection(db_vendor)
     try:
-        # connect to the PostgreSQL server
         # create a cursor
         cur = conn.cursor()
 
         # just show the db we are querying
-        show_dbname(cur)
+        if db_vendor == 'pg':
+            show_dbname(cur)
 
         # get the tables size (nr of rows)
         df_tsizes = get_tables_size(args, cur)
@@ -74,15 +72,6 @@ def sample(args):
 
         # types are not strictly needed
         # TODO remove type, add get_excluded_columns?
-
-        q_columns = """
-        SELECT column_name, data_type
-FROM   information_schema.columns
-WHERE  table_name = %s
-AND column_name not like '%%id'
-AND column_name not IN ('class', 'identifier')
-ORDER  BY ordinal_position
-        """
 
         target = args.target_size
         threshold = args.filter_threshold
@@ -97,7 +86,9 @@ ORDER  BY ordinal_position
             syn_table = pd.DataFrame()
 
             # get the columns (and their types)
-            cur.execute(q_columns, (table,))
+            query_cols = getattr(q, '{}_columns'.format(db_vendor))
+            cur.execute(query_cols, (table,))
+            # cur.execute(q.pg_columns, (table,))
             columns = cur.fetchall()
             # for each column get the all the values and their count
             for column in columns:
@@ -130,7 +121,8 @@ ORDER  BY ordinal_position
 
         # close the communication with PostgreSQL
         cur.close()
-    except (Exception, psycopg2.DatabaseError) as error:
+    except (Exception, db_error) as error:
+        # except (Exception, psycopg2.DatabaseError) as error:
         print(error)
     finally:
         if conn is not None:
@@ -142,7 +134,8 @@ def value_counter(cur, table, column, threshold):
     """
     remove rare occurrences and get the counts
 
-    note: by default threshold =1
+    note: - by default threshold =1
+          - this query should not be db vendor dependant
     """
 
     q_columns_count = """
@@ -239,14 +232,7 @@ def get_tables_size(args, cur):
     return df_tsizes
 
 
-def get_db_version(cur):
-    print('PostgreSQL database version:')
-    cur.execute('SELECT version()')
-    db_version = cur.fetchone()
-    print(db_version)
-
-
-def show_dbname(cur: connection()) -> NoReturn:
+def show_dbname(cur: q.connection('pg')) -> NoReturn:
     """
     print header with database in use
     """

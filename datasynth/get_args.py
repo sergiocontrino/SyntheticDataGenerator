@@ -29,6 +29,9 @@ def get_args():
         help="[db] The minimum number of occurrences for a single value to be used in the generation."
         "Default is 1, i.e. no filtering.")
     parser.add_argument(
+        "-m", "--mssqlserver", action="store_true",
+        help="[db] Connect to a MS SQL Server database. Default is PostgreSQL.")
+    parser.add_argument(
         "-n", "--numerical", action="store_true",
         help="[summaries] Flag the summaries in the input file as numerical (continuous).")
     parser.add_argument(

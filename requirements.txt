@@ -3,3 +3,5 @@ datasynth
 setuptools
 psycopg2
 numpy
+pytest
+pyodbc
