@@ -32,16 +32,16 @@ def get_args():
         "-m", "--mssqlserver", action="store_true",
         help="[db] Connect to a MS SQL Server database. Default is PostgreSQL.")
     parser.add_argument(
+        "-t", "--target_size", type=int, default=5000,
+        help="[db] The desired number of synthetic records for the scaling class/the variables in the summaries."
+        "Default is 5000.")
+    parser.add_argument(
         "-n", "--numerical", action="store_true",
         help="[summaries] Flag the summaries in the input file as numerical (continuous).")
     parser.add_argument(
         "-s", "--seed", type=int, default=1,
         help="Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. "
         "Default is 1.")
-    parser.add_argument(
-        "-t", "--target_size", type=int, default=5000,
-        help="[db] The desired number of synthetic records for the scaling class/the variables in the summaries."
-        "Default is 5000.")
     parser.add_argument(
         "-u", "--no_seed", action="store_true",
         help="Unseeded: don't use a seed for the sampling.")
