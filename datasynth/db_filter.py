@@ -6,6 +6,7 @@ from get_args import get_args
 import pandas as pd
 import queries as q
 
+
 def main() -> NoReturn:
     """
 
@@ -144,8 +145,7 @@ def value_counter(cur, table, column, threshold):
     """
     remove rare occurrences and get the counts
 
-    note: - by default threshold =1
-          - this query should not be db vendor dependant
+    note: - by default threshold =1, i.e. no filtering of rare occurring values is done
     """
 
     q_columns_count = """
@@ -156,10 +156,10 @@ def value_counter(cur, table, column, threshold):
     order by 2 desc
             """
 
-    cur.execute(q_columns_count.format(column[0], table, threshold))
+    cur.execute(q.columns_count.format(column[0], table, threshold))
 
-    columns_count = cur.fetchall()
-    return columns_count
+    cols_count = cur.fetchall()
+    return cols_count
 
 
 def build_synth_col(table_size, cols_count, target_size, seed, unseeded):

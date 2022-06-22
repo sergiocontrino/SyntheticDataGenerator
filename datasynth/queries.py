@@ -57,18 +57,23 @@ def get_excluded_tables() -> str:
     return exclusion_list
 
 
+# --------------------------------
+# give the list of tables and their sizes in the db
+# some tables excluded
+# sizes used to scale the amount of synth data produced
+# --------------------------------
+
 pg_tables_size = """
-    SELECT relname,reltuples
-    FROM pg_class C
-    LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-    WHERE 
-      nspname NOT IN ('pg_catalog', 'information_schema') 
+SELECT relname,reltuples
+FROM pg_class C
+LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+WHERE 
+    nspname NOT IN ('pg_catalog', 'information_schema') 
       AND relname NOT IN (""" + get_excluded_tables() + """) 
       AND relkind='r' 
       and reltuples > 0
     ORDER BY reltuples DESC
             """
-
 
 ms_tables_size = """
 SELECT
@@ -90,6 +95,10 @@ sOBJ.schema_id
 ORDER BY [RowCount] DESC
             """
 
+#
+# make a list of a table columns
+# note exceptions, (mostly no identifiers) based on an intermine-like schema
+#
 
 pg_columns = """
 SELECT column_name, data_type
@@ -110,4 +119,18 @@ AND sys.objects.name = %s
 AND sys.columns.name not in ('class', 'identifier');
 AND sys.columns.name not like '%%id'
 ORDER  BY 1
+        """
+
+# --------------------------------
+# give a categorical break down of the values for a column of a table
+# this query should be db vendor independent
+# TODO: verify on ms
+# --------------------------------
+
+columns_count = """
+select {}, count(1) 
+from {}
+group by 1
+having count(1) >= {} 
+order by 2 desc
         """
