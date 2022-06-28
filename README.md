@@ -12,10 +12,10 @@ optional arguments:
   -c SCALING_CLASS, --scaling_class SCALING_CLASS
                         [db] Entity (table) in the database used as reference dimension for scaling. Default is patient
   -f FILTER_THRESHOLD, --filter_threshold FILTER_THRESHOLD
-                        [db] The minimum number of occurrences for a single value to be used in the generation.Default is 1, i.e. no filtering.
+                        [db] The minimum number of occurrences for a single value to be used in the generation. Default is 1, i.e. no filtering.
   -m, --mssqlserver     [db] Connect to a MS SQL Server database. Default is PostgreSQL.
   -t TARGET_SIZE, --target_size TARGET_SIZE
-                        [db] The desired number of synthetic records for the scaling class/the variables in the summaries.Default is 5000.
+                        [db] The desired number of synthetic records for the scaling class/the variables in the summaries. Default is 5000.
   -n, --numerical       [summaries] Flag the summaries in the input file as numerical (continuous).
   -s SEED, --seed SEED  Set a seed (integer) for the sampling/normal distribution, useful for reproducibility. Default is 1.
   -u, --no_seed         Unseeded: don't use a seed for the sampling.
@@ -66,4 +66,14 @@ host=localhost
 database=mydb
 user=myuser
 password=mypassword
+```
+
+for sql server (untested)
+```
+[mssqlserver]
+DRIVER={SQL Server};
+SERVER=localhost;
+DATABASE=testdb;
+UID=user;
+PWD=password
 ```
