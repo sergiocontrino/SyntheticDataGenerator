@@ -29,18 +29,19 @@ optional arguments:
 the script queries a database to get all the tables containing data (you can exclude some), get the number of rows for each and then get values counts for all the (categorical) attributes (columns).
 If a threshold >1 is set, it will exclude from the count all values occurring < threshold times in the column.
 
+The script will output a csv file of synthetic data for each table. 
 
 examples:
 
 
 ``
-python main.py db
+python datasynth/main.py db
 ``
 
 uses all the default values: the reference class is <i>patient</i>, the reference size is <i>5000</i>, seed used for the sampling is <i>1</i>
 
 ``
-python main.py -c referral -t 30000 db
+python datasynth/main.py -c referral -t 30000 db
 ``
 
 the script runs with <i>referral</i> as the reference class; referral will be used to scale all the other outputs, and <i>30000</i> the sample size for the reference class in the generated data.
