@@ -148,14 +148,6 @@ def value_counter(cur, table, column, threshold):
     note: - by default threshold =1, i.e. no filtering of rare occurring values is done
     """
 
-    q_columns_count = """
-    select {}, count(1) 
-    from {}
-    group by 1
-    having count(1) >= {} 
-    order by 2 desc
-            """
-
     cur.execute(q.columns_count.format(column[0], table, threshold))
 
     cols_count = cur.fetchall()
