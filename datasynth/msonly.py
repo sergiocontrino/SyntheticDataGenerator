@@ -75,8 +75,8 @@ def sample(args):
         # types are not strictly needed
         # TODO remove type, add get_excluded_columns?
 
-        target = args.target_size
-        threshold = args.filter_threshold
+        target = 1000
+        threshold = 10
         seed = args.seed
         unseeded = args.no_seed
 
@@ -96,7 +96,7 @@ def sample(args):
             # for each column get the all the values and their count
             for column in columns:
                 # get the counts
-                cols_count = value_counter(cur, table, column, threshold)
+                cols_count = value_counter(cur, table, fix_cname(column), threshold)
                 # build the synthetic column
                 syn_col = build_synth_col(t_size, cols_count, target, seed, unseeded)
                 # add it to the data frame
@@ -136,6 +136,10 @@ def sample(args):
 def fix_name(name):
     tok = name.split('.')
     return tok[1].strip('[]')
+
+
+def fix_cname(name):
+    return name.strip('()\' ')
 
 
 def get_db_vendor(args):
