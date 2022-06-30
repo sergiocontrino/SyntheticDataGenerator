@@ -57,10 +57,10 @@ def sample(args):
     # Some other example server values are
     # server = 'localhost\sqlexpress' # for a named instance
     # server = 'myserver,port' # to specify an alternate port
-    server = 'tcp:myserver.database.windows.net'
-    database = 'mydb'
-    username = 'myusername'
-    password = 'mypassword'
+    server = 'CPFT-CRATE-P01'
+    database = 'M00999_CCC'
+    username = 'XX'
+    password = 'XX'
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
     try:
@@ -81,17 +81,18 @@ def sample(args):
         unseeded = args.no_seed
 
         # for each table
-        for table in df_tsizes.index:
-            t_size = int(df_tsizes.loc[table].at["rows"])
+        for t in df_tsizes.index:
+            t_size = int(df_tsizes.loc[t].at["rows"])
+            table = fix_name(t)
+            print("==", table)
 
             # initialise the df of synth data for the table
             syn_table = pd.DataFrame()
 
             # get the columns (and their types)
-            query_cols = getattr(q, '{}_columns'.format(db_vendor))
-            cur.execute(query_cols, (table,))
-            # cur.execute(q.pg_columns, (table,))
+            cur.execute(q.ms_columns, (table,))
             columns = cur.fetchall()
+            print("--", columns)
             # for each column get the all the values and their count
             for column in columns:
                 # get the counts
@@ -130,6 +131,11 @@ def sample(args):
         if conn is not None:
             conn.close()
             print('Database connection closed.')
+
+
+def fix_name(name):
+    tok = name.split('.')
+    return tok[1].strip('[]')
 
 
 def get_db_vendor(args):
@@ -210,14 +216,14 @@ def get_tables_size(args, cur):
     :return: data frame with table size
     """
 
-    #db_vendor = get_db_vendor(args)
-    #tables_size = getattr(q, '{}_tables_size'.format(db_vendor))
+    scaling_class = "[dbo].[PERSON_DIM]"
+
     tables_size = q.ms_tables_size
     cur.execute(tables_size)
     class_counts = []  #
     table_row = cur.fetchall()
     for row in table_row:
-        if row[0] == args.scaling_class:
+        if row[0] == scaling_class:
             den = row[1]
         class_counts.append(row)
     cols = ['rows', 'ratio']

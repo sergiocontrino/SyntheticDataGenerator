@@ -72,7 +72,7 @@ WHERE
     ORDER BY reltuples DESC
             """
 
-ms_tables_size = """
+ms_tables_size_or = """
 SELECT
 QUOTENAME(SCHEMA_NAME(sOBJ.schema_id)) + '.' + QUOTENAME(sOBJ.name) AS [TableName]
 , SUM(sPTN.Rows) AS [RowCount]
@@ -92,6 +92,24 @@ sOBJ.schema_id
 ORDER BY [RowCount] DESC
             """
 
+ms_tables_size = """
+SELECT
+QUOTENAME(SCHEMA_NAME(sOBJ.schema_id)) + '.' + QUOTENAME(sOBJ.name) AS [TableName]
+, SUM(sPTN.Rows) AS [RowCount]
+FROM 
+sys.objects AS sOBJ
+INNER JOIN sys.partitions AS sPTN
+ON sOBJ.object_id = sPTN.object_id
+WHERE
+sOBJ.type = 'U'
+AND sOBJ.is_ms_shipped = 0x0
+AND index_id < 2 -- 0:Heap, 1:Clustered
+GROUP BY 
+sOBJ.schema_id, sOBJ.name
+HAVING SUM(sPTN.Rows) > 0
+ORDER BY SUM(sPTN.Rows) DESC
+            """
+
 #
 # make a list of a table columns
 # note exceptions, (mostly no identifiers) based on an intermine-like schema
@@ -106,7 +124,16 @@ AND column_name not IN ('class', 'identifier')
 ORDER  BY ordinal_position
         """
 
-ms_columns = """
+
+ms_columns = """SELECT COLUMN_NAME
+FROM M00999_ccc.INFORMATION_SCHEMA.TABLES t INNER JOIN  M00999_ccc.INFORMATION_SCHEMA.COLUMNS c
+ON t.TABLE_NAME = c.TABLE_NAME
+WHERE t.TABLE_TYPE = 'BASE TABLE' 
+AND t.TABLE_NAME = ?
+"""
+
+
+ms_columns_or = """
 USE dbname;
 SELECT sys.columns.name
 FROM sys.objects INNER JOIN sys.columns
