@@ -4,24 +4,21 @@ import psycopg2
 import pyodbc
 from configparser import ConfigParser
 
-conf_file = 'datasynth/database.ini'
-
-PG = 'postgresql'
-MS = 'mssqlserver'
-
 
 def config(vendor):
+    conf_file = 'datasynth/database.ini'
+
     # create a parser
     parser = ConfigParser()
     # read config file
     parser.read(conf_file)
 
+    # set section in the ini file, default to postgresql
     if vendor == "ms":
-        section = MS
+        section = 'mssqlserver'
     else:
-        section = PG
+        section = 'postgresql'
 
-    # get section, default to postgresql
     db = {}
     if parser.has_section(section):
         params = parser.items(section)
