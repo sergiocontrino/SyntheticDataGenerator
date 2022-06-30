@@ -80,6 +80,13 @@ def sample(args):
         seed = args.seed
         unseeded = args.no_seed
 
+        ms_columns = """SELECT COLUMN_NAME
+        FROM M00999_ccc.INFORMATION_SCHEMA.TABLES t INNER JOIN  M00999_ccc.INFORMATION_SCHEMA.COLUMNS c
+        ON t.TABLE_NAME = c.TABLE_NAME
+        WHERE t.TABLE_TYPE = 'BASE TABLE'
+        AND t.TABLE_NAME = ?
+        """
+
         # for each table
         for t in df_tsizes.index:
             t_size = int(df_tsizes.loc[t].at["rows"])
@@ -90,13 +97,15 @@ def sample(args):
             syn_table = pd.DataFrame()
 
             # get the columns (and their types)
-            cur.execute(q.ms_columns, (table,))
+            cur.execute(ms_columns, (table,))
             columns = cur.fetchall()
             print("--", columns)
             # for each column get the all the values and their count
             for column in columns:
                 # get the counts
-                cols_count = value_counter(cur, table, fix_cname(column), threshold)
+                cn = str(column)
+                cname = fix_cname(cn)
+                cols_count = value_counter(cur, table, cname, threshold)
                 # build the synthetic column
                 syn_col = build_synth_col(t_size, cols_count, target, seed, unseeded)
                 # add it to the data frame
@@ -122,10 +131,9 @@ def sample(args):
                 print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now",
                       threshold)
 
-        # close the communication with PostgreSQL
+        # close the communication with db
         cur.close()
     except (Exception, get_db_error(args)) as error:
-        # except (Exception, psycopg2.DatabaseError) as error:
         print(error)
     finally:
         if conn is not None:
@@ -139,7 +147,7 @@ def fix_name(name):
 
 
 def fix_cname(name):
-    return name.strip('()\' ')
+    return str(name.strip('()\' ,'))
 
 
 def get_db_vendor(args):
@@ -165,15 +173,16 @@ def value_counter(cur, table, column, threshold):
     note: - by default threshold =1, i.e. no filtering of rare occurring values is done
     """
 
-    q_columns_count = """
-    select {}, count(1) 
-    from {}
-    group by 1
-    having count(1) >= {} 
+    ms_columns_count = """
+    select ?, count(*)
+    from ?
+    group by ?
+    having count(*) >= 10
     order by 2 desc
             """
 
-    cur.execute(q.columns_count.format(column[0], table, threshold))
+    # cur.execute(q.columns_count.format(column[0], table, threshold))
+    cur.execute(ms_columns_count, column, table, column)
 
     cols_count = cur.fetchall()
     return cols_count
@@ -222,7 +231,25 @@ def get_tables_size(args, cur):
 
     scaling_class = "[dbo].[PERSON_DIM]"
 
-    tables_size = q.ms_tables_size
+    ms_tables_size = """
+    SELECT
+    QUOTENAME(SCHEMA_NAME(sOBJ.schema_id)) + '.' + QUOTENAME(sOBJ.name) AS [TableName]
+    , SUM(sPTN.Rows) AS [RowCount]
+    FROM
+    sys.objects AS sOBJ
+    INNER JOIN sys.partitions AS sPTN
+    ON sOBJ.object_id = sPTN.object_id
+    WHERE
+    sOBJ.type = 'U'
+    AND sOBJ.is_ms_shipped = 0x0
+    AND index_id < 2 -- 0:Heap, 1:Clustered
+    GROUP BY
+    sOBJ.schema_id, sOBJ.name
+    HAVING SUM(sPTN.Rows) > 0
+    ORDER BY SUM(sPTN.Rows) DESC
+                """
+
+    tables_size = ms_tables_size
     cur.execute(tables_size)
     class_counts = []  #
     table_row = cur.fetchall()
