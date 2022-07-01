@@ -63,6 +63,8 @@ def sample(args):
     password = 'XX'
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
+    # conn.setdecoding(pyodbc.SQL_CHAR, encoding='latin1')
+    # conn.setencoding('latin1')
     try:
         # create a cursor
         cur = conn.cursor()
@@ -105,6 +107,7 @@ def sample(args):
                 # get the counts
                 cn = str(column)
                 cname = fix_cname(cn)
+                print("--colname:", cname)
                 cols_count = value_counter(cur, table, cname, threshold)
                 # build the synthetic column
                 syn_col = build_synth_col(t_size, cols_count, target, seed, unseeded)
@@ -182,7 +185,10 @@ def value_counter(cur, table, column, threshold):
             """
 
     # cur.execute(q.columns_count.format(column[0], table, threshold))
-    cur.execute(ms_columns_count, column, table, column)
+    # cur.execute(ms_columns_count, column, table, column)
+    data = [column, table, column]
+    print(data)
+    cur.execute(ms_columns_count, data)
 
     cols_count = cur.fetchall()
     return cols_count
