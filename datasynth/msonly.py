@@ -67,11 +67,6 @@ def sample(args):
         # types are not strictly needed
         # TODO remove type, add get_excluded_columns?
 
-        # target = 1000
-        # threshold = 10
-        # seed = args.seed
-        # unseeded = args.no_seed
-
         ms_columns = """SELECT COLUMN_NAME
         FROM M00999_ccc.INFORMATION_SCHEMA.TABLES t INNER JOIN  M00999_ccc.INFORMATION_SCHEMA.COLUMNS c
         ON t.TABLE_NAME = c.TABLE_NAME
