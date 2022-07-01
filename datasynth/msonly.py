@@ -53,7 +53,7 @@ def sample(args):
     target = 1000
     threshold = 10
     seed = 3
-    unseeded = False
+    unseeded = True
 
     try:
         # create a cursor
@@ -112,7 +112,7 @@ def sample(args):
             # dump csv file of sampled data
             # note: removing trailing 0 in the date (introduced because of nulls -> float)
             if len(syn_table) > 0:
-                if args.no_seed:
+                if unseeded:
                     syn_table.sample(n=scaling_factor, replace=True).to_csv('{0}.csv'.format(table),
                                                                             float_format="%.0f", index=False)
                 else:
