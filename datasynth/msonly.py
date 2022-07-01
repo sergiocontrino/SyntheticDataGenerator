@@ -96,6 +96,8 @@ def sample(args):
                 # get the counts
                 cn = str(column)
                 cname = fix_cname(cn)
+                if cname == "Default":
+                    continue
                 # print("--colname:", cname)
                 cols_count = value_counter(cur, table, cname, threshold)
                 # build the synthetic column
