@@ -176,7 +176,7 @@ def value_counter(cur, table, column, threshold):
     note: - by default threshold =1, i.e. no filtering of rare occurring values is done
     """
 
-    ms_columns_count = """
+    ms_columns_count_or = """
     select ?, count(*)
     from ?
     group by ?
@@ -184,11 +184,16 @@ def value_counter(cur, table, column, threshold):
     order by 2 desc
             """
 
+    ms_columns_count = "select " + column + ", count(*) from " + table + \
+                       "group by " + column + "having count(*) >= 10 order by 2 desc"
+
     # cur.execute(q.columns_count.format(column[0], table, threshold))
     # cur.execute(ms_columns_count, column, table, column)
-    data = [column, table, column]
-    print(data)
-    cur.execute(ms_columns_count, data)
+    #data = [column, table, column]
+    #data = ([(column, ), (table, ), (column, )], )
+
+    print(ms_columns_count)
+    cur.execute(ms_columns_count)
 
     cols_count = cur.fetchall()
     return cols_count
