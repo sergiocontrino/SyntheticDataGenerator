@@ -116,7 +116,7 @@ def sample(args):
 
             # scale the table's data according to original size
             # get scaling factor
-            scaling_factor = int(float(df_tsizes.loc[table, 'ratio']) * args.target_size)
+            scaling_factor = int(float(df_tsizes.loc[table, 'ratio']) * target)
             print(table, ":  sampling", scaling_factor, "records..")
             # print("for columns: >>", col_list)
 
@@ -192,7 +192,7 @@ def value_counter(cur, table, column, threshold):
     #data = [column, table, column]
     #data = ([(column, ), (table, ), (column, )], )
 
-    print(ms_columns_count)
+#    print(ms_columns_count)
     cur.execute(ms_columns_count)
 
     cols_count = cur.fetchall()
@@ -240,12 +240,30 @@ def get_tables_size(args, cur):
     :return: data frame with table size
     """
 
-    scaling_class = "[dbo].[PERSON_DIM]"
+    # scaling_class = "[dbo].[PERSON_DIM]"
+    scaling_class = "PERSON_DIM"
 
-    ms_tables_size = """
+    ms_tables_size_1 = """
     SELECT
     QUOTENAME(SCHEMA_NAME(sOBJ.schema_id)) + '.' + QUOTENAME(sOBJ.name) AS [TableName]
     , SUM(sPTN.Rows) AS [RowCount]
+    FROM
+    sys.objects AS sOBJ
+    INNER JOIN sys.partitions AS sPTN
+    ON sOBJ.object_id = sPTN.object_id
+    WHERE
+    sOBJ.type = 'U'
+    AND sOBJ.is_ms_shipped = 0x0
+    AND index_id < 2 -- 0:Heap, 1:Clustered
+    GROUP BY
+    sOBJ.schema_id, sOBJ.name
+    HAVING SUM(sPTN.Rows) > 0
+    ORDER BY SUM(sPTN.Rows) DESC
+                """
+
+    ms_tables_size = """
+    SELECT
+    sOBJ.name, SUM(sPTN.Rows)
     FROM
     sys.objects AS sOBJ
     INNER JOIN sys.partitions AS sPTN
