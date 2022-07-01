@@ -4,7 +4,6 @@ import random
 from typing import NoReturn
 from get_args import get_args
 import pandas as pd
-import queries as q
 import pyodbc
 
 
@@ -13,20 +12,6 @@ def main() -> NoReturn:
 
     :return: none
     """
-
-
-def get_excluded_tables() -> str:
-    """
-    the list of tables we don't want to consider
-    (for example in an intermine schema)
-
-    TODO: get them from a config file?
-    """
-    # intermine build tables
-    exclusion_list = "'tracker', 'intermineobject', 'intermine_metadata', 'executelog', 'osbag_int'"
-    # cv and tables filled by loader (dataset/datasource)
-    exclusion_list += ", 'riskfactordefinition', 'problem', 'datasource', 'dataset', 'ethnicity'"
-    return exclusion_list
 
 
 def get_precision() -> str:
@@ -63,24 +48,29 @@ def sample(args):
     password = 'XX'
     conn = pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};SERVER=' + server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
-    # conn.setdecoding(pyodbc.SQL_CHAR, encoding='latin1')
-    # conn.setencoding('latin1')
+
+    scaling_class = "PERSON_DIM"
+    target = 1000
+    threshold = 10
+    seed = 3
+    unseeded = False
+
     try:
         # create a cursor
         cur = conn.cursor()
 
         # get the tables size (nr of rows)
-        df_tsizes = get_tables_size(args, cur)
+        df_tsizes = get_tables_size(scaling_class, cur)
         print(df_tsizes)
         print()
 
         # types are not strictly needed
         # TODO remove type, add get_excluded_columns?
 
-        target = 1000
-        threshold = 10
-        seed = args.seed
-        unseeded = args.no_seed
+        # target = 1000
+        # threshold = 10
+        # seed = args.seed
+        # unseeded = args.no_seed
 
         ms_columns = """SELECT COLUMN_NAME
         FROM M00999_ccc.INFORMATION_SCHEMA.TABLES t INNER JOIN  M00999_ccc.INFORMATION_SCHEMA.COLUMNS c
@@ -90,10 +80,9 @@ def sample(args):
         """
 
         # for each table
-        for t in df_tsizes.index:
-            t_size = int(df_tsizes.loc[t].at["rows"])
-            table = fix_name(t)
-            print("==", table)
+        for table in df_tsizes.index:
+            t_size = int(df_tsizes.loc[table].at["rows"])
+            # print("==", table)
 
             # initialise the df of synth data for the table
             syn_table = pd.DataFrame()
@@ -101,13 +90,13 @@ def sample(args):
             # get the columns (and their types)
             cur.execute(ms_columns, (table,))
             columns = cur.fetchall()
-            print("--", columns)
+            # print("--", columns)
             # for each column get the all the values and their count
             for column in columns:
                 # get the counts
                 cn = str(column)
                 cname = fix_cname(cn)
-                print("--colname:", cname)
+                # print("--colname:", cname)
                 cols_count = value_counter(cur, table, cname, threshold)
                 # build the synthetic column
                 syn_col = build_synth_col(t_size, cols_count, target, seed, unseeded)
@@ -185,14 +174,10 @@ def value_counter(cur, table, column, threshold):
             """
 
     ms_columns_count = "select " + column + ", count(*) from " + table + \
-                       "group by " + column + "having count(*) >= 10 order by 2 desc"
+                       " group by " + column + " having count(*) >= 10 order by 2 desc"
 
     # cur.execute(q.columns_count.format(column[0], table, threshold))
-    # cur.execute(ms_columns_count, column, table, column)
-    #data = [column, table, column]
-    #data = ([(column, ), (table, ), (column, )], )
-
-#    print(ms_columns_count)
+    # print(ms_columns_count)
     cur.execute(ms_columns_count)
 
     cols_count = cur.fetchall()
@@ -231,35 +216,16 @@ def build_synth_col(table_size, cols_count, target_size, seed, unseeded):
     return col
 
 
-def get_tables_size(args, cur):
+def get_tables_size(scaling_class, cur):
     """
     queries the db to get the tables and their size
 
-    :param args:
+    :param scaling_class: the class (table) we want to use to scale the data
     :param cur:
     :return: data frame with table size
     """
 
-    # scaling_class = "[dbo].[PERSON_DIM]"
-    scaling_class = "PERSON_DIM"
-
-    ms_tables_size_1 = """
-    SELECT
-    QUOTENAME(SCHEMA_NAME(sOBJ.schema_id)) + '.' + QUOTENAME(sOBJ.name) AS [TableName]
-    , SUM(sPTN.Rows) AS [RowCount]
-    FROM
-    sys.objects AS sOBJ
-    INNER JOIN sys.partitions AS sPTN
-    ON sOBJ.object_id = sPTN.object_id
-    WHERE
-    sOBJ.type = 'U'
-    AND sOBJ.is_ms_shipped = 0x0
-    AND index_id < 2 -- 0:Heap, 1:Clustered
-    GROUP BY
-    sOBJ.schema_id, sOBJ.name
-    HAVING SUM(sPTN.Rows) > 0
-    ORDER BY SUM(sPTN.Rows) DESC
-                """
+    # scaling_class = "PERSON_DIM"
 
     ms_tables_size = """
     SELECT
