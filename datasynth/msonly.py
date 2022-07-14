@@ -64,15 +64,16 @@ def sample(args):
         print(df_tsizes)
         print()
 
-        # types are not strictly needed
-        # TODO remove type, add get_excluded_columns?
-
         ms_columns = """SELECT COLUMN_NAME
-        FROM M00999_ccc.INFORMATION_SCHEMA.TABLES t INNER JOIN  M00999_ccc.INFORMATION_SCHEMA.COLUMNS c
+        FROM M00999_CCC.INFORMATION_SCHEMA.TABLES t INNER JOIN  M00999_CCC.INFORMATION_SCHEMA.COLUMNS c
         ON t.TABLE_NAME = c.TABLE_NAME
         WHERE t.TABLE_TYPE = 'BASE TABLE'
+        AND COLUMN_NAME NOT IN ( 'rid', 'trid','mrid','nhshash', 'crate_pk','_src_hash')
         AND t.TABLE_NAME = ?
         """
+
+        # to store values for the summary dump
+        rows = []
 
         # for each table
         for table in df_tsizes.index:
@@ -93,8 +94,14 @@ def sample(args):
                 cname = fix_cname(cn)
                 if cname == "Default":
                     continue
-                # print("--colname:", cname)
+                if cname == "Group":
+                    continue
+
+                # get the columns values count
                 cols_count = value_counter(cur, table, cname, threshold)
+                # to build the summary (for checking)
+                rows.append([table, column[0], cols_count])
+
                 # build the synthetic column
                 syn_col = build_synth_col(t_size, cols_count, target, seed, unseeded)
                 # add it to the data frame
@@ -120,6 +127,9 @@ def sample(args):
                 print("WARNING: table", table, "is now empty! Try reducing the threshold for common values, now",
                       threshold)
 
+        # dump a csv files with the summary of all values considered for the generation
+        dump_summary(rows)
+
         # close the communication with db
         cur.close()
     except (Exception, get_db_error(args)) as error:
@@ -128,6 +138,13 @@ def sample(args):
         if conn is not None:
             conn.close()
             print('Database connection closed.')
+
+
+def dump_summary(rows):
+    cols = ['TABLE', 'ATTRIBUTE', 'COLS_COUNT']
+    summaries = pd.DataFrame(rows, columns=cols)
+    # print df to file
+    summaries.to_csv("summaries.csv", index=False)
 
 
 def fix_name(name):
